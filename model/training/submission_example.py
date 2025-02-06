@@ -38,7 +38,7 @@ def main(city, output_directory):
     MODEL_NAME = "train_model"
     
     eval_directory = "processed_test_data"
-    train_directory = "processed_train_data"
+    train_directory = "generated_train_data"
     weight_directory = "learnt_weight"
     
     THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
