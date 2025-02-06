@@ -28,7 +28,7 @@ ADDITIONAL_CLI_OPTIONS = [
     # '--postgres'
 ]
 
-def main(city):
+def main(city, output_directory):
    
     global THIS_DIR
     global EVAL_DIR
@@ -37,10 +37,10 @@ def main(city):
     MODEL_NAME = "test_model"
     
     directory = "processed_test_data"
-    output_directory = "output"
+
     THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    EVAL_DIR = os.path.join(THIS_DIR, directory, city)
-    
+    #EVAL_DIR = os.path.join(THIS_DIR, directory, city)
+    EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', directory, city)
     
     weight_file_loc = "weight_file.json"
     with open(weight_file_loc) as f:
@@ -66,7 +66,6 @@ def main(city):
 def write_results(results, model, output_directory, city):
     out_dir = os.path.join(THIS_DIR, output_directory)
     os.makedirs(out_dir, exist_ok = True)
-    print(out_dir)
     for predicate in model.get_predicates().values():
         if (predicate.closed()):
             continue
@@ -270,7 +269,7 @@ def get_pred_list(city, output_directory):
 
 # Get label files for a city
 def get_truth_modified(city):
-    with open(f"processed_test_data/{city}/commenttype_truth.txt") as f:        
+    with open(EVAL_DIR + f"/commenttype_truth.txt") as f:         
         truth = f.readlines()
     return truth
 
@@ -312,9 +311,9 @@ def all_(target, city, output_directory):
         return (None, None, None, None)
     return prfs(all_true,all_pred,average='binary')
 
-def test(city):
+def test(city, output_directory):
 
-    output_directory = "output"
+    #output_directory = "output"
     # Compute metric values for PC and PH
     rs4 = all_('PC', city, output_directory)
     rs2 = all_('PH', city, output_directory)
@@ -331,6 +330,7 @@ def test(city):
 
 if (__name__ == '__main__'):
     city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
+    output_directory = "output"
     for city in city_list:
-        main(city)
-        test(city)
+        main(city, output_directory)
+        test(city, output_directory)
