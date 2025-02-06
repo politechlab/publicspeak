@@ -6,17 +6,17 @@
 - small data for experiments
 
 # pipeline - this is second priority 
- - video to audio
- - transcript
- - clean transcript
- - feed the transcript to PLM
- - feed the transcript to LLM
- - give transcript, PLM output, LLM output to PSL 
+ - video to audio - D
+ - transcript - D
+ - clean transcript - D
+ - feed the transcript to PLM - D
+ - feed the transcript to LLM - D
+ - give transcript, PLM output, LLM output to PSL - D
 
 # model - HIGH PRIORITY
 - PSL code
-    - training - takes data from the pipeline
-    - inference - start with inference - 
+    - training - takes data from the pipeline - D
+    - inference - start with inference -  - D
        - one for the paper experiments, use the best weights learned
        - with default weights
        - let's keep track of the size of the models, if weights are too large we can put in zenodo
