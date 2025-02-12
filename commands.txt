@@ -1,0 +1,35 @@
+Here are the commands I used to do each steps. I will tell you in which
+directory the command is used and what is the aim of the command.
+
+1. Transcribe a video
+dir:       ./pipeline/transcribe_and_LLM
+            # transform a video to audio
+command:   python main.py --mode to_wav --wav_input $VIDEO_DIR$ --wav_output $AUDIO_DIR$
+            # transform a video to audio
+           python main.py --mode transcribe --device cuda --ts_output_folder $TRANSCRIPT_DIR$ --audio_file $AUDIO_DIR$
+
+Once we have the transcripts:
+2. Get LLM indicators
+dir:       ./pipeline/transcribe_and_LLM
+            # Find the transitions to the public comments and public hearings sections
+command:   python main.py --mode find_public_trigger_general --ts_path $TRANSCRIPT_DIR$ 
+
+Now users should manually prepare a training set, a validation set and a test set. Make
+    sure the training and validation set are annotated.
+3. Get PLM indicators
+dir:       ./pipeline/PLM
+            # Train PLM and predict on the test set
+command:   python finetuned_one_val_out.py --model_name $PLM_NAME$ 
+                --city $CITY_SHORTCODE$ --lr $LEARNING_RATE$ --epoch $EPOCH$ 
+                --seed $SEED$ 
+
+4. With PLM and LLM indicators, generate the processed data can be used by PSL.
+dir:       ./pipeline/generate_processed_data
+            # Find the transitions to the public comments and public hearings sections
+command:   python generate_processed_data.py --city $CITY_SHORTCODE$ --seed $SEED$
+
+5. Train PSL and predict on the test set.
+dir:       ./model/training
+            # Train PSL and do inference
+command:   python generate_processed_data.py --city $CITY_SHORTCODE$ --seed $SEED$
+

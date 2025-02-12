@@ -12,12 +12,20 @@ import random
 import numpy as np
 from tqdm import tqdm
 import sys
+import argparse
 
-random.seed(42)
-np.random.seed(42)
+parser = argparse.ArgumentParser(description="Process some arguments.")
+parser.add_argument("--city", type=str, default="AA")
+parser.add_argument("--seed", type=int, default=42)
+args = parser.parse_args()
+city = args.city
+seed = args.seed
+
+random.seed(seed)
+np.random.seed(seed)
 long_text_th = 50
 
-city = sys.argv[1]
+city = city
 
 with open(f"../../data/raw_train/{city}_train.json") as f:
     train = json.load(f)

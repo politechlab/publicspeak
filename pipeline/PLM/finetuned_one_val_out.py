@@ -16,6 +16,7 @@ import datasets
 from datasets import Dataset, DatasetDict
 import functools 
 import evaluate
+import argparse
 
 
 def seed_everything(seed_value):
@@ -29,19 +30,26 @@ def seed_everything(seed_value):
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = True
-seed_everything(42)
 
-def main(model_name="roberta-large", city="all", lr=2e-5, epoch=7):
 
+def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
+    model_name = args.model_name
+    city = args.city
+    lr = args.lr
+    epoch = args.epoch
+    seed = args.seed
+    
+    
+    seed_everything(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    with open(f"../ground_truth/{city}_train.json") as f:
+    with open(f"../../data/raw_train/{city}_train.json") as f:
         train = json.load(f)
         
-    with open(f"../ground_truth/{city}_val.json") as f:
+    with open(f"../data/raw_val/{city}_val.json") as f:
         val = json.load(f)
         
-    with open(f"../ground_truth/{city}_test.json") as f:
+    with open(f"../data/raw_test/{city}_test.json") as f:
         test = json.load(f)
         
     merged = []
@@ -224,6 +232,18 @@ def main(model_name="roberta-large", city="all", lr=2e-5, epoch=7):
                "f1_hearing_pess": f11_b, 
               }
         
-    with open(f"{name}_{city}_{lr}_{epoch}_results_LOO_NEW.json", "w") as f:
+    with open(f"../../data/PLM_indicators/{city}_pred_LOO_roberta.json", "w") as f:
         json.dump({"pred": pred, "train_pred": pred_train, "val_pred": val_pred, "metrics": metrics}, f)
 
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process some arguments.")
+    parser.add_argument("--model_name", type=str, default="roberta-large")
+    parser.add_argument("--city", type=str, default="AA")
+    parser.add_argument("--lr", type=float, default=2e-5)
+    parser.add_argument("--epoch", type=int, default=7)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+    
+    main(args)

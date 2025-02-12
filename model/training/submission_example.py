@@ -13,12 +13,21 @@ from pslpython.partition import Partition
 from pslpython.predicate import Predicate
 from pslpython.rule import Rule
 
+import argparse
+
+parser = argparse.ArgumentParser(description="Process some arguments.")
+parser.add_argument("--city", type=str, default="AA")
+parser.add_argument("--seed", type=int, default=42)
+args = parser.parse_args()
+city = args.city
+seed = args.seed
+
 def seed_everything(seed_value):
     random.seed(seed_value)
     np.random.seed(seed_value)
     os.environ['PYTHONHASHSEED'] = str(seed_value)
 
-seed_everything(42)
+seed_everything(seed)
 
 ADDITIONAL_PSL_OPTIONS = {
     'log4j.threshold': 'INFO'
@@ -352,8 +361,6 @@ def test(city, output_directory):
 
 if (__name__ == '__main__'):
     #city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
-    city_list = ["AA"]
     output_directory = "output"
-    for city in city_list:
-        main(city, output_directory)
-        test(city, output_directory)
+    main(city, output_directory)
+    test(city, output_directory)
