@@ -43,6 +43,8 @@ def main(city, output_directory):
     EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', directory, city)
     
     weight_file_loc = "weight_file.json"
+    weight_file_loc = os.path.join(THIS_DIR, weight_file_loc)
+    
     with open(weight_file_loc) as f:
         weight_file = json.load(f)
     
@@ -315,6 +317,7 @@ def test(city, output_directory):
 
     #output_directory = "output"
     # Compute metric values for PC and PH
+    output_directory = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__))), output_directory)
     rs4 = all_('PC', city, output_directory)
     rs2 = all_('PH', city, output_directory)
     

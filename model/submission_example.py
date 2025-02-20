@@ -39,6 +39,7 @@ def main(city):
     directory = "processed_test_data"
     output_directory = "output"
     THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+    print(THIS_DIR)
     #EVAL_DIR = os.path.join(THIS_DIR, directory, city)
     EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', directory, city)
     
