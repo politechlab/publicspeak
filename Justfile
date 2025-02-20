@@ -20,9 +20,13 @@ clean:
 	rm -fr .ruff_cache
 
 # install with all deps
-install:
+install-pipeline-deps:
 	pip install uv
 	uv pip install -r requirements-pipeline.txt
+
+# setup psl environment
+setup-psl-env:
+    conda env create -f psl-environment.yml -y
 
 # lint, format, and check all files
 lint:
