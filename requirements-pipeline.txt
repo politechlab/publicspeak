@@ -1,0 +1,34 @@
+accelerate==0.27.2
+anthropic==0.33.1
+audioread==3.0.0
+bertopic==0.15.0
+cdp-backend==4.1.3
+cdp-data @ git+https://github.com/councildataproject/cdp-data@0b5f518bdba45aaba6a0a3441b77714c83525e99
+dataclasses-json==0.5.12
+datasets==2.15.0
+evaluate==0.4.1
+gputil==1.4.0
+ipywidgets==8.0.6
+jupyterlab==3.6.3
+librosa==0.10.1
+matplotlib==3.5.1
+mistune==2.0.5
+nltk==3.8.1
+numpy==1.24.4
+openai==0.28.1
+openai-whisper==20230314
+pandas==1.5.3
+pydub==0.25.1
+python-dotenv==1.0.1
+pytube==15.0.0
+sacrebleu==2.4.1
+scipy==1.8.0
+seaborn==0.12.2
+scikit-learn==1.2.1
+sentence-transformers==2.2.2
+spacy==3.8.3
+torch==2.0.1
+tqdm==4.64.1
+transformers[torch]==4.39.1
+whisperx @ git+https://github.com/m-bain/whisperx.git@78dcfaab51005aa703ee21375f81ed31bc248560
+umap-learn==0.5.3
