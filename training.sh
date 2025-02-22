@@ -1,0 +1,1 @@
+python model/training/train.py --city $CITY --seed 42
