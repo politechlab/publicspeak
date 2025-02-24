@@ -25,13 +25,15 @@ random.seed(seed)
 np.random.seed(seed)
 long_text_th = 50
 
-city = city
+current_dir = os.path.dirname(os.path.realpath(__file__))
+out_dir = os.path.abspath(os.path.join(current_dir, "../../data/generated_train_data/"))
+data_dir = os.path.abspath(os.path.join(current_dir, "../../data/"))
 
-with open(f"../../data/raw_train/{city}_train.json") as f:
+with open(data_dir + f"/raw_train/{city}_train.json") as f:
     train = json.load(f)
-with open(f"../../data/raw_val/{city}_val.json") as f:
+with open(data_dir + f"/raw_val/{city}_val.json") as f:
     val = json.load(f)
-with open(f"../../data/raw_test/{city}_test.json") as f:
+with open(data_dir + f"/raw_test/{city}_test.json") as f:
     test = json.load(f)
 
 truth = {}
@@ -109,7 +111,7 @@ info2t, t2info = assign_info(truth)
 #     json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
 
 for j in truth:
-    with open("../../data/LLM_indicators/"+ j + "_trigger_general.json") as f:
+    with open(current_dir + "/../../data/LLM_indicators/"+ j + "_trigger_general.json") as f:
         triggers = json.load(f)
 
     dat = []
@@ -512,23 +514,15 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     train_next_phrase = []
     train_name_phrase = []
 
-    llm_location = "../../data/PLM_indicators/"
+    llm_location = current_dir + "/../../data/PLM_indicators/"
     
     city_code = ["all", "AA", "RO", "JS", "CS", "GA", "IN", "LV", "PR", "SC", "SL", "WT", "LS", "AP", "PE", "SEA", "OAK", "RCH"]
     
     for ctc in city_code:
         if ctc in output:
             with open(llm_location + f"{ctc}_pred_LOO_roberta.json") as f:
-                #TODO
                 llm_pred = json.load(f)
                 break
-    
-    # for ctc in city_code:
-    #     if ctc in output:
-    #         with open(llm_location + f"{ctc}_pred_LOO_distilbert.json") as f:
-    #             #TODO
-    #             db_pred = json.load(f)
-    #             break
                 
                 
     for ind, example in enumerate(train_list):
@@ -700,7 +694,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     
     testv_speaker_low_count = make_low_count(testv_speaker_count_dict)
     testv_speaker_high_count = make_high_count(testv_speaker_count_dict)
-    
+    print( output + "/train/spoken.txt")
     write_a_file(spoken_train, output + "/train/spoken.txt")
     write_a_file(longUtter_train, output + "/train/longUtter.txt")
     write_a_file(train_speaker_long, output + "/train/speaker_long.txt")
@@ -821,4 +815,5 @@ def LOO(data, output="../data/public_comments"):
 data = [truth[i] for i in truth]
 
 #cross_val(data, cv=5, output="/home/shared/starter_code_public_comments/data/test_data_gen/AA")
-LOO(data, output=f"../../data/generated_train_data/{city}")
+print(f"{out_dir}/{city}")
+LOO(data, output=f"{out_dir}/{city}")
