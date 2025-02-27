@@ -6,7 +6,6 @@ Local governments around the world are making consequential decisions on behalf 
 
 ## Installation
 
-**Stable Release:** `pip install publicspeak`<br>
 
 # pipeline 
  - transcribe_and_LLM contains the code to transcribe the mp4 files and generate LLM indicators
