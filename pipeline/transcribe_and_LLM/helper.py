@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any
 import time
 import psutil
 import re
-from pytube import YouTube
 import matplotlib.pyplot as plt
 import whisper
 from whisperx import load_align_model, align

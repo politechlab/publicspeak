@@ -1,6 +1,5 @@
-from helper import download_youtube_video, convert_to_wav, video_filename, clean_text
+from helper import convert_to_wav, video_filename, clean_text
 from extract_public import clean_and_find_manager, cut_off, ask_gpt, extract_public, ask_gpt_multi, ask_gpt_new
-#from extract_public import ask_gpt_multi
 from prompt_factory import initial_prompt, initial_prompt_multi, initial_prompt_general, initial_prompt_PC
 from transcribe import use_whisperx
 from options import args
@@ -11,48 +10,24 @@ import json
 from collections import defaultdict
 import openai
 import time
-
-# def ask_gpt_multi(initial_prompt, content, the_json, model="gpt-4", temperature=0):
-#     openai.api_key = os.getenv("OPENAI_API_KEY") 
-#     msg = "The JSON file: \n" + json.dumps(the_json) + "\n Transcript segment: \n" + content
-    
-#     messages = [
-#         {"role": "system", "content": initial_prompt},
-#         {"role": "user", "content": msg}
-#     ]
-
-#     response = openai.ChatCompletion.create(
-#       model=model,
-#       messages=messages,
-#       temperature=temperature,
-#       #response_format={"type": "json_object"},
-#     )
-    
-#     # print(response.choices[0].message.content)
-#     # print("#####################")
-#     try:
-#         return eval(response.choices[0].message.content)
-#     except:
-#         return {}
-
     
 if __name__ == "__main__":
     
     if args.mode == "full":
         pass
     
-    elif args.mode == "download_video":
-        output_path = args.video_output  # Replace with your desired path
-        url = args.url
-        # TODO: change to Path
+#     elif args.mode == "download_video":
+#         output_path = args.video_output  # Replace with your desired path
+#         url = args.url
+#         # TODO: change to Path
         
-        # if os.path.exists(output_path + ""):
-        #     print(f"File {output_path} is existing, skip the downloading process.")
-        # else:
-        #     if not os.path.exists(seg_dir):
-        #         os.makedirs(seg_dir)
-        #         print(f"File {output_path} does not exist.")
-        download_youtube_video(url, output_path)
+#         # if os.path.exists(output_path + ""):
+#         #     print(f"File {output_path} is existing, skip the downloading process.")
+#         # else:
+#         #     if not os.path.exists(seg_dir):
+#         #         os.makedirs(seg_dir)
+#         #         print(f"File {output_path} does not exist.")
+#         download_youtube_video(url, output_path)
     elif args.mode == "to_wav":
         input_file = args.wav_input
         # TODO: change wav_output
