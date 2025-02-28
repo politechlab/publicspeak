@@ -9,7 +9,38 @@ openjdk=23.0.2
 python=3.8.17
 
 ## Installation
+Install `just` software.
+`pip install rust-just`
+Run 
+`just setup-psl-env`
+to create virtual environment to run the experiments and training.
 
+Run 
+`just install-pipeline-deps`
+to install all the dependencies needed to prepare for the data from the scratch.
+
+## How to use
+
+We provided several script to go through the project:
+- **experiment.sh**: A script to replicate the results in our paper.
+    Run 
+    `bash experiment.sh`
+    
+- **training.sh**: A script to train your model.
+    Change the parameters in `training.sh`
+    Run 
+    `bash training.sh`
+    
+---
+We also provide scripts for preparing for the data.
+- **transcribe_video.sh**: A script to transcribe a council meeting video.
+    Change the parameters in `transcribe_video.sh`
+    Run 
+    `bash transcribe_video.sh`
+- **prepare_publicspeak_data.sh**: A script to replicate the results in our paper.
+    Change the parameters in `prepare_publicspeak_data.sh`
+    Run 
+    `bash prepare_publicspeak_data.sh`
 
 ## pipeline 
  - transcribe_and_LLM contains the code to transcribe the mp4 files and generate LLM indicators
@@ -25,6 +56,6 @@ python=3.8.17
 - the code to reproduce results in paper
 
 ## evaluation and analysis
-- a notebook for generating topic assignments and delete the key - Eva
+- a notebook for generating topic assignments
 - a folder with prompts
 - a script for reading from results and generating metrics 
