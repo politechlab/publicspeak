@@ -27,9 +27,3 @@ install-pipeline-deps:
 # setup psl environment
 setup-psl-env:
     conda env create -f psl-environment.yml -y
-
-# lint, format, and check all files
-lint:
-    pip install uv
-    uv pip install precommit
-    pre-commit run --all-files

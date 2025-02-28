@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 ###############################################################################
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path(__file__).parent / "data"
 FULL_METADATA_PATH = DATA_DIR / "full-dataset-metadata.csv"
 
 ###############################################################################
