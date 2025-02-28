@@ -3,6 +3,7 @@ channels:
   - defaults
 dependencies:
   - python=3.8.17
+  - openjdk=23.0.2
   - pip:
       - asttokens==2.4.0
       - backcall==0.2.0
