@@ -1,1 +1,4 @@
-python model/training/train.py --city $CITY --seed 42
+city="AA"
+seed=42
+
+python model/training/train.py --city ${city} --seed ${seed}
