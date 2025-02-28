@@ -29,6 +29,7 @@ We provided several script to go through the project:
     `bash experiment.sh`
     
 - **training.sh**: A script to train your model.
+
     Change the parameters in `training.sh`
     
     Run 
