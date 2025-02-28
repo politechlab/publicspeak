@@ -3,7 +3,6 @@ import subprocess
 from typing import Optional, List, Dict, Any
 import time
 import psutil
-import GPUtil
 import re
 from pytube import YouTube
 import matplotlib.pyplot as plt
