@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any
 import time
 import psutil
 import re
-import whisper
 from whisperx import load_align_model, align
 from whisperx.diarize import DiarizationPipeline, assign_word_speakers
 import json
