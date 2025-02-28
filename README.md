@@ -9,15 +9,17 @@ openjdk=23.0.2
 python=3.8.17
 
 ## Installation
-Install `just` software.
-`pip install rust-just`
-Run 
-`just setup-psl-env`
-to create virtual environment to run the experiments and training.
+- Install `just` software.
 
-Run 
-`just install-pipeline-deps`
-to install all the dependencies needed to prepare for the data from the scratch.
+`pip install rust-just`
+
+- Run 
+    `just setup-psl-env`
+    to create virtual environment to run the experiments and training.
+
+- Run 
+    `just install-pipeline-deps`
+    to install all the dependencies needed to prepare for the data from the scratch.
 
 ## How to use
 
