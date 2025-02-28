@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3,4,5,6,7"
 from transformers import AutoTokenizer
 import torch
 import json
@@ -42,14 +41,16 @@ def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
     
     seed_everything(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-    with open(f"../../data/raw_train/{city}_train.json") as f:
+    
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    
+    with open(current_dir + f"/../../data/raw_train/{city}_train.json") as f:
         train = json.load(f)
         
-    with open(f"../data/raw_val/{city}_val.json") as f:
+    with open(current_dir + f"/../../data/raw_val/{city}_val.json") as f:
         val = json.load(f)
         
-    with open(f"../data/raw_test/{city}_test.json") as f:
+    with open(current_dir + f"/../../data/raw_test/{city}_test.json") as f:
         test = json.load(f)
         
     merged = []
@@ -165,10 +166,10 @@ def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
         tokenized_ds = ds.map(preprocess_function, batched=True)
 
         training_args = TrainingArguments(
-            output_dir="my_awesome_model",
+            output_dir="plm_model",
             learning_rate=lr,
-            per_device_train_batch_size=20,
-            per_device_eval_batch_size=20,
+            per_device_train_batch_size=10,
+            per_device_eval_batch_size=10,
             num_train_epochs=epoch,
             weight_decay=0.01,
             evaluation_strategy="epoch",
@@ -231,8 +232,10 @@ def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
                "f1_comment_pess": f10_b, 
                "f1_hearing_pess": f11_b, 
               }
-        
-    with open(f"../../data/PLM_indicators/{city}_pred_LOO_roberta.json", "w") as f:
+    
+    
+    out_dir = os.path.abspath(os.path.join(current_dir, "../../data/PLM_indicators"))
+    with open(out_dir + f"/{city}_pred_LOO_roberta.json", "w") as f:
         json.dump({"pred": pred, "train_pred": pred_train, "val_pred": val_pred, "metrics": metrics}, f)
 
 

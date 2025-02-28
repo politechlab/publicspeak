@@ -1,35 +1,25 @@
 # publicspeak
 
 
-# data - PUTTING THE SMALL DATA IN IS HIGH PRIORITY 
-- link to much data - publish in zenodo, dataverse
-- small data for experiments
+# data -
+- full-comment-data-with-topics.csv is a file for generating the topic distribution figures
+- 
+- 
 
-# pipeline - this is second priority 
- - video to audio - D
- - transcript - D
- - clean transcript - D
- - feed the transcript to PLM - D
- - feed the transcript to LLM - D
- - give transcript, PLM output, LLM output to PSL - D
+# pipeline 
+ - transcribe_and_LLM contains the code to transcribe the mp4 files and generate LLM indicators
+ - PLM the code here generates PLM predictions which are used by the PSL model
+ - generate_processed_data contains a script for transforming all of the data into the format that PSL can use 
 
-# model - HIGH PRIORITY
+# model 
 - PSL code
-    - training - takes data from the pipeline - D
-    - inference - start with inference -  - D
-       - one for the paper experiments, use the best weights learned
-       - with default weights
-       - let's keep track of the size of the models, if weights are too large we can put in zenodo
-       - write results to results folder
-         
+    - training - trains a PSL model and uses the model to make inferences 
+    - inference - generates the results discussed in the paper  
 
-
-# experiments - HIGH PRIORITY FOR THE PSL RESULTS
-
+# experiments 
 - the code to reproduce results in paper
 
 # evaluation and analysis - 
-- Sabina add notebook for plotting
-- a notebook for generating topic assignments and delete the key
+- a notebook for generating topic assignments and delete the key - Eva
 - a folder with prompts
 - a script for reading from results and generating metrics 

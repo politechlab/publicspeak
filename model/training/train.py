@@ -48,14 +48,17 @@ def main(city, output_directory):
     
     eval_directory = "processed_test_data"
     train_directory = "generated_train_data"
-    weight_directory = "learnt_weight"
     
     THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
     #EVAL_DIR = os.path.join(THIS_DIR, directory, city)
     TRAIN_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', train_directory, city, "train")
     EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', eval_directory, city)
     
+    weight_directory = "learnt_weight"
+    weight_directory = os.path.join(THIS_DIR, weight_directory)
+    
     weight_file_loc = "init_weight_file.json"
+    weight_file_loc = os.path.join(THIS_DIR, weight_file_loc)
     with open(weight_file_loc) as f:
         weight_file = json.load(f)
     
@@ -68,13 +71,13 @@ def main(city, output_directory):
     add_rules(model, city, weight_file)
     
     # Model training to get the learnt weights
-    learn(model)
+    learn(model, os.path.join(THIS_DIR, 'temp_learn'))
 
     # Write down the learnt weights
     write_weights(model, weight_directory, city)
         
     # Model infers to get results
-    results = infer(model, city)
+    results = infer(model, city, os.path.join(THIS_DIR, 'temp'))
 
     # Write down the results
     write_results(results, model, output_directory, city)
@@ -264,13 +267,13 @@ def add_data(model, train_type):
     path = os.path.join(DATA_DIR, 'sectiontype_truth.txt')
     model.get_predicate('Section').add_data_file(Partition.TRUTH, path)
     
-def learn(model):
+def learn(model, temp_dir):
     add_data(model,'train')
-    model.learn(temp_dir = "temp_learn",additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
+    model.learn(temp_dir = temp_dir,additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
     
-def infer(model, city):
+def infer(model, city, temp_dir):
     add_data(model,'test')
-    return model.infer(temp_dir = "temp_infer",additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
+    return model.infer(temp_dir = temp_dir, additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
 
 # Get predictions for a city
 def get_pred(city, output_directory):
@@ -312,9 +315,7 @@ def get_truth_dict_modified(city):
         meet_id = x[0]
         ut_id = x[1]
         ct = x[2]
-        
-        tv = x[3]
-        
+        tv = x[3]        
         key = '{}-{}'.format(meet_id,ut_id)
         
         if key not in to_return:
@@ -343,9 +344,9 @@ def all_(target, city, output_directory):
     return prfs(all_true,all_pred,average='binary')
 
 def test(city, output_directory):
-
-    #output_directory = "output"
     # Compute metric values for PC and PH
+    
+    output_directory = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__))), output_directory)
     rs4 = all_('PC', city, output_directory)
     rs2 = all_('PH', city, output_directory)
     
@@ -355,7 +356,9 @@ def test(city, output_directory):
         return "{:.3f}".format(round(s, 3))
     k = (rs4[2] + rs2[2]) / 2 if rs2[2] is not None else None
     out = f"Recall, Precision and F1 score of Public Comments of {city} are: " + " & ".join([a(rs4[1]), a(rs4[0]), a(rs4[2])])
+    print("=========================================================================")
     print(out)
+    print("=========================================================================")
 
     return rs4, rs2
 
