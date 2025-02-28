@@ -2,7 +2,6 @@ name: psl-global
 channels:
   - defaults
 dependencies:
-  - openjdk=23.0.2
   - python=3.8.17
   - pip:
       - asttokens==2.4.0

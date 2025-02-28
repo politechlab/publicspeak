@@ -20,7 +20,6 @@ openai-whisper==20230314
 pandas==1.5.3
 pydub==0.25.1
 python-dotenv==1.0.1
-pytube==15.0.0
 sacrebleu==2.4.1
 scipy==1.8.0
 seaborn==0.12.2
