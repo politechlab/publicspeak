@@ -47,6 +47,7 @@ We also provide scripts for preparing for the data.
     `bash transcribe_video.sh`
     
 - **prepare_publicspeak_data.sh**: A script to replicate the results in our paper.
+
     Change the parameters in `prepare_publicspeak_data.sh`
     
     Run 
