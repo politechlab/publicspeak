@@ -2,13 +2,17 @@ import subprocess
 import os
 import time
 import json
+import argparse
+parser = argparse.ArgumentParser(description="Process some arguments.")
+parser.add_argument("--city", type=str, default="AA")
+args = parser.parse_args()
+c = args.city
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 out_dir = os.path.abspath(os.path.join(current_dir, "../../data/LLM_indicators/"))
 data_dir = os.path.abspath(os.path.join(current_dir, "../../data/"))
+
 def gen_trigger(name):
-    
-    
-     
     with open(name) as f:
         js = json.load(f)
     for key in js:
@@ -22,9 +26,6 @@ def gen_trigger(name):
         command = f"python {current_dir}/main.py --mode public_extraction_general --ts_path '{out_dir}/{json_name}'"
         subprocess.run(command, shell=True, check=True)
 
-cities = ["AA"]
-
-for c in cities:
-    gen_trigger(f"{data_dir}/raw_train/{c}_train.json")
-    gen_trigger(f"{data_dir}/raw_val/{c}_val.json")
-    gen_trigger(f"{data_dir}/raw_test/{c}_test.json")
+gen_trigger(f"{data_dir}/raw_train/{c}_train.json")
+gen_trigger(f"{data_dir}/raw_val/{c}_val.json")
+gen_trigger(f"{data_dir}/raw_test/{c}_test.json")

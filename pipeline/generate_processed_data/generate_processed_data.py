@@ -17,9 +17,11 @@ import argparse
 parser = argparse.ArgumentParser(description="Process some arguments.")
 parser.add_argument("--city", type=str, default="AA")
 parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--plm_file_name", type=str, default="AA_pred_LOO_roberta.json")
 args = parser.parse_args()
 city = args.city
 seed = args.seed
+plm_file_name = args.plm_file_name
 
 random.seed(seed)
 np.random.seed(seed)
@@ -45,7 +47,8 @@ for key in val:
 test_limit = train_limit + len(val.keys())
 for key in test:
     truth[key] = test[key]
-    
+print(train_limit,test_limit)
+print(len(truth), len(train), len(val), len(test))
 for item in truth:
     for m in range(len(truth[item])):
         truth[item][m]["text"] = str(truth[item][m]["text"])
@@ -106,9 +109,6 @@ i2t, t2i = assign_comment_index(truth)
 rename_speaker(truth)
 i2m, m2i = assign_meeting_id(truth)
 info2t, t2info = assign_info(truth)
-
-# with open("../data/public_comments_section_version/mapping/merged_data_truth_id_mapping.json", "w") as f:
-#     json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
 
 for j in truth:
     with open(current_dir + "/../../data/LLM_indicators/"+ j + "_trigger_general.json") as f:
@@ -332,7 +332,6 @@ def make_contain(train_list, val_list, test_list):
     new_docs = cvv.prepare_doc(docs)
     matrics = cvv.fit_transform(new_docs).toarray()
     vocab = cvv.get_feature_names_out()
-    # print(matrics.shape, vocab.shape)
     non_zero_indices = np.argwhere(matrics != 0)
     words = vocab[non_zero_indices[:, 1]]
     temp = np.cumsum(np.count_nonzero(matrics, axis=1))[:-1]
@@ -420,11 +419,11 @@ def make_section_type(example):
             get_line([M, str(utt_index), "PH", assigning["PH"]])
            ]
 
-def make_llm_pred(example, ind, llm_pred):
+def make_plm_pred(example, ind, plm_pred):
     M = example["meeting"]
     utt_index = example["index"]
     mapping = ["Other", "PC", "PH"] 
-    comment_type = mapping[llm_pred[ind]] 
+    comment_type = mapping[plm_pred[ind]] 
     return get_line([M, str(utt_index), comment_type, "1.0"])
 
 def make_section_type_tar(example):
@@ -514,23 +513,17 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     train_next_phrase = []
     train_name_phrase = []
 
-    llm_location = current_dir + "/../../data/PLM_indicators/"
-    
-    city_code = ["all", "AA", "RO", "JS", "CS", "GA", "IN", "LV", "PR", "SC", "SL", "WT", "LS", "AP", "PE", "SEA", "OAK", "RCH"]
-    
-    for ctc in city_code:
-        if ctc in output:
-            with open(llm_location + f"{ctc}_pred_LOO_roberta.json") as f:
-                llm_pred = json.load(f)
-                break
-                
+    plm_location = current_dir + "/../../data/PLM_indicators/"
+
+    with open(os.path.join(plm_location, plm_file_name)) as f:
+        plm_pred = json.load(f)       
                 
     for ind, example in enumerate(train_list):
         spoken_train.append(make_spoken(example))
         train_commenttype += make_commenttype(example)
         train_commenttype_tar += make_commenttype_tar(example)
-        train_llm_commenttype.append(make_llm_pred(example, ind, llm_pred["train_pred"]))
-        #train_db_commenttype.append(make_llm_pred(example, ind, db_pred["train_pred"]))
+        train_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["train_pred"]))
+        #train_db_commenttype.append(make_plm_pred(example, ind, db_pred["train_pred"]))
         
         train_section_type_gpt.extend(make_section_type_gpt(example))
         train_section_type.extend(make_section_type(example))
@@ -594,8 +587,8 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         spoken_test.append(make_spoken(example))
         test_commenttype += make_commenttype(example)
         test_commenttype_tar += make_commenttype_tar(example)
-        test_llm_commenttype.append(make_llm_pred(example, ind, llm_pred["val_pred"]))
-        #test_db_commenttype.append(make_llm_pred(example, ind, db_pred["val_pred"]))
+        test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["val_pred"]))
+        #test_db_commenttype.append(make_plm_pred(example, ind, db_pred["val_pred"]))
         
         test_section_type_gpt.extend(make_section_type_gpt(example))
         test_section_type.extend(make_section_type(example))
@@ -661,8 +654,8 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         spoken_testv.append(make_spoken(example))
         testv_commenttype += make_commenttype(example)
         testv_commenttype_tar += make_commenttype_tar(example)
-        testv_llm_commenttype.append(make_llm_pred(example, ind, llm_pred["pred"]))
-        #testv_db_commenttype.append(make_llm_pred(example, ind, db_pred["pred"]))
+        testv_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["pred"]))
+        #testv_db_commenttype.append(make_plm_pred(example, ind, db_pred["pred"]))
         
         testv_section_type_gpt.extend(make_section_type_gpt(example))
         testv_section_type.extend(make_section_type(example))
@@ -694,7 +687,6 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     
     testv_speaker_low_count = make_low_count(testv_speaker_count_dict)
     testv_speaker_high_count = make_high_count(testv_speaker_count_dict)
-    print( output + "/train/spoken.txt")
     write_a_file(spoken_train, output + "/train/spoken.txt")
     write_a_file(longUtter_train, output + "/train/longUtter.txt")
     write_a_file(train_speaker_long, output + "/train/speaker_long.txt")
@@ -792,7 +784,7 @@ def LOO(data, output="../data/public_comments"):
         subdir_path = os.path.join(output, subdir)
         if not os.path.exists(subdir_path):
             os.makedirs(subdir_path)
-    
+    # print(len(data))
     training_set = data[:train_limit]
     test_set = data[train_limit: test_limit]
     testv_set = data[test_limit:]
@@ -815,5 +807,5 @@ def LOO(data, output="../data/public_comments"):
 data = [truth[i] for i in truth]
 
 #cross_val(data, cv=5, output="/home/shared/starter_code_public_comments/data/test_data_gen/AA")
-print(f"{out_dir}/{city}")
+#print(f"{out_dir}/{city}")
 LOO(data, output=f"{out_dir}/{city}")

@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import os
 from transformers import AutoTokenizer
 import torch
@@ -31,19 +28,19 @@ def seed_everything(seed_value):
         torch.backends.cudnn.benchmark = True
 
 
-def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
+def main(args):
     model_name = args.model_name
     city = args.city
     lr = args.lr
     epoch = args.epoch
     seed = args.seed
-    
+    bs = args.batch_size
     
     seed_everything(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    
+    os.environ["WANDB_DIR"] = current_dir
     with open(current_dir + f"/../../data/raw_train/{city}_train.json") as f:
         train = json.load(f)
         
@@ -166,10 +163,10 @@ def main(model_name="roberta-large", city="AA", lr=2e-5, epoch=7, seed=42):
         tokenized_ds = ds.map(preprocess_function, batched=True)
 
         training_args = TrainingArguments(
-            output_dir="plm_model",
+            output_dir=os.path.join(current_dir, "plm_model"),
             learning_rate=lr,
-            per_device_train_batch_size=10,
-            per_device_eval_batch_size=10,
+            per_device_train_batch_size=bs,
+            per_device_eval_batch_size=bs,
             num_train_epochs=epoch,
             weight_decay=0.01,
             evaluation_strategy="epoch",
@@ -247,6 +244,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--epoch", type=int, default=7)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--batch_size", type=int, default=16)
     args = parser.parse_args()
     
     main(args)
