@@ -23,23 +23,33 @@ to install all the dependencies needed to prepare for the data from the scratch.
 
 We provided several script to go through the project:
 - **experiment.sh**: A script to replicate the results in our paper.
+
     Run 
+    
     `bash experiment.sh`
     
 - **training.sh**: A script to train your model.
     Change the parameters in `training.sh`
+    
     Run 
+    
     `bash training.sh`
     
 ---
 We also provide scripts for preparing for the data.
 - **transcribe_video.sh**: A script to transcribe a council meeting video.
+
     Change the parameters in `transcribe_video.sh`
+    
     Run 
+    
     `bash transcribe_video.sh`
+    
 - **prepare_publicspeak_data.sh**: A script to replicate the results in our paper.
     Change the parameters in `prepare_publicspeak_data.sh`
+    
     Run 
+    
     `bash prepare_publicspeak_data.sh`
 
 ## pipeline 
