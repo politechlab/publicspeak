@@ -8,7 +8,7 @@ from cdp_backend.utils.file_utils import resource_copy
 
 ###############################################################################
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path(__file__).parent / "data"
 FULL_METADATA_PATH = (DATA_DIR / "full-dataset-metadata.csv").absolute().resolve()
 NEW_METADATA_PATH = (
     (DATA_DIR / "annotation-ready-dataset-metadata.csv").absolute().resolve()
