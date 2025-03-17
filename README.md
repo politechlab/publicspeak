@@ -5,18 +5,28 @@
 Local governments around the world are making consequential decisions on behalf of their constituents, and these constituents are responding with requests, advice, and assessments of their officials at public meetings. So many small meetings cannot be covered by traditional newsrooms at scale. We propose PUBLICSPEAK, a probabilistic framework which can utilize meeting structure, domain knowledge, and linguistic information to discover public remarks in local government meetings. We then use our approach to inspect the issues raised by constituents in 7 cities across the United States. We evaluate our approach on a novel dataset of local government meetings and find that PUBLICSPEAK improves over state-of-the-art by 10% on average, and by up to 40%. 
 
 ## Installation
+- First, create a virtual environment
+  
+    `conda create --name publicspeak python=3.11 -y`
+  
+    `conda activate publicspeak`
 - Install `just` software.
 
-`pip install rust-just`
+    `pip install rust-just`
+
+- Run 
+    `just install-pipeline-deps`
+    to install all the dependencies needed to prepare for the data from the scratch.
 
 - Run 
     `just setup-psl-env`
     to create virtual environment to run the experiments and training.
 
-- Run 
-    `just install-pipeline-deps`
-    to install all the dependencies needed to prepare for the data from the scratch.
-    Please use Python 3.10 or 3.11.
+- Run
+    `conda activate psl-global`
+    to activiate the virtual environment psl-global.
+
+
 
 ## How to use
 
