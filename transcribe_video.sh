@@ -1,5 +1,5 @@
-VIDEO_NAME="Ann Arbor City Council 112023.mp4"
-VIDEO_PATH="/home/shared/turbo_data/localgov/videos/2023/03000/${VIDEO_NAME}"
+VIDEO_NAME=""
+VIDEO_PATH=""
 WAV_DIR="data/audio/"
 TRANSCRIPTS_DIR="data/transcripts/"
 WAV_NAME="${VIDEO_NAME%.*}.wav" 
