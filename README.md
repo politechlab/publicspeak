@@ -26,7 +26,8 @@ Local governments around the world are making consequential decisions on behalf 
     `conda activate psl-global`
     to activiate the virtual environment psl-global.
 
-
+### Installation Demo Video: click to view
+[![PUBLICSPEAK Code Installation](https://img.youtube.com/vi/NdTGXwOtWtw/0.jpg)](https://www.youtube.com/watch?v=NdTGXwOtWtw)
 
 ## How to use
 
