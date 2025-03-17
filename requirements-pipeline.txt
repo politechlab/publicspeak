@@ -11,7 +11,7 @@ gputil==1.4.0
 ipywidgets==8.0.6
 jupyterlab==3.6.3
 librosa==0.10.1
-matplotlib==3.5.1
+matplotlib
 mistune==2.0.5
 nltk==3.8.1
 numpy==1.24.4
