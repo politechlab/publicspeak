@@ -86,7 +86,7 @@ We also provide scripts for preparing for the data.
 
 ## Citation
 ```
-@inproceedings{sustainability_signals,
+@inproceedings{publicspeak,
   title     = {{PUBLICSPEAK: Hearing the Public with a Probabilistic Framework}},
   author    = {Xu, Tianliang and Brown, Eva Maxfield and Dwyer, Dustin and Tomkins, Sabina},
   booktitle = {Proceedings of The 39th Annual AAAI Conference on Artificial Intelligence},
