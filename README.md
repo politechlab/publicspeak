@@ -66,20 +66,31 @@ We also provide scripts for preparing for the data.
     
     `bash prepare_publicspeak_data.sh`
 
-## pipeline 
+## Pipeline 
  - transcribe_and_LLM contains the code to transcribe the mp4 files and generate LLM indicators
  - PLM the code here generates PLM predictions which are used by the PSL model
  - generate_processed_data contains a script for transforming all of the data into the format that PSL can use 
 
-## model 
+## Model 
 - PSL code
     - training - trains a PSL model and uses the model to make inferences 
     - inference - generates the results discussed in the paper  
 
-## experiments 
+## Experiments 
 - the code to reproduce results in paper
 
-## evaluation and analysis
+## Evaluation and Analysis
 - a notebook for generating topic assignments
 - a folder with prompts
 - a script for reading from results and generating metrics 
+
+## Citation
+```
+@inproceedings{sustainability_signals,
+  title     = {{PUBLICSPEAK: Hearing the Public with a Probabilistic Framework}},
+  author    = {Xu, Tianliang and Brown, Eva Maxfield and Dwyer, Dustin and Tomkins, Sabina},
+  booktitle = {Proceedings of The 39th Annual AAAI Conference on Artificial Intelligence},
+  year      = {2025},
+  note      = {AI for Social Impact Track},
+}
+```
