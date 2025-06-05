@@ -1,0 +1,35 @@
+   SpeakerType(M, S,+d) = 1 .
+   CommentType(M, U,+d) = 1 .
+   Section(M, U,+d) = 1 .
+   0.027556: LongUtterRatio(M, S) -> SpeakerType(M, S, "public") ^2
+   0.053262: HighCount(M, S) -> SpeakerType(M, S, "other") ^2
+   0.007703: LowCount(M, S) -> SpeakerType(M, S, "public") ^2
+   0.029481: CommentPhrase(M, U) -> Section(M, U, "PC") ^2
+   0.256140: HearingPhrase(M, U) -> Section(M, U, "PH") ^2
+   0.200000: NamePhrase(M, U) & Spoken(M,U,S) -> CommentType(M, U, "PC") ^2
+   0.200000: NamePhrase(M, U) & Spoken(M,U,S) -> CommentType(M, U, "PH") ^2
+   0.500000: SectionGPT(M,U,"PH") & CommentTypeLLM(M,U,"PC") -> CommentType(M, U, "PH") ^2
+   1.000000: SectionGPT(M,U,"PC") & CommentTypeLLM(M,U,"PH") -> CommentType(M, U, "PC") ^2
+   0.254489: SectionGPT(M,U,"Other") -> Section(M, U, "Other") ^2
+   0.359205: SectionGPT(M,U,"PC") -> Section(M, U, "PC") ^2
+   0.354415: SectionGPT(M,U,"PH") -> Section(M, U, "PH") ^2
+   0.500000: CommentTypeLLM(M,U,"PH")  -> CommentType(M, U, "PH") ^2
+   0.501611: CommentTypeLLM(M,U,"PC")  -> CommentType(M, U, "PC") ^2
+   0.448385: CommentTypeLLM(M,U,"Other") -> CommentType(M, U, "Other") ^2
+   0.079032: First(M,U) -> Section(M, U, "Other") ^2
+   0.192487: Section(M, Uone, "PC") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PC") ^2
+   0.034509: Section(M, Uone, "PC") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PH") ^2
+   0.034938: Section(M, Uone, "PC") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "Other") ^2
+   0.112829: Section(M, Uone, "PH") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PC") ^2
+   0.192527: Section(M, Uone, "PH") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PH") ^2
+   0.118653: Section(M, Uone, "PH") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "Other") ^2
+   0.000000: Section(M, Uone, "Other") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PC") ^2
+   0.000000: Section(M, Uone, "Other") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "PH") ^2
+   0.184306: Section(M, Uone, "Other") & Precedes(M,Uone,Utwo) -> Section(M, Utwo, "Other") ^2
+   0.480048: Section(M,Uone,"PC")& Section(M,Utwo,"PC")&CommentType(M, Uone, "Other") & Precedes(M,Uone,Utwo) -> CommentType(M, Utwo, "PC") ^2
+   0.429791: Section(M,Uone,"PH")& Section(M,Utwo,"PH")&CommentType(M, Uone, "Other") & Precedes(M,Uone,Utwo) -> CommentType(M, Utwo, "PH") ^2
+   0.200000: Section(M, U, "PC") & Spoken(M,U,S)  & SpeakerType(M, S, "public") -> CommentType(M, U, "PC") ^2
+   0.200523: Section(M, U, "PC") & Spoken(M,U,S)  & SpeakerType(M, S, "other") -> CommentType(M, U, "Other") ^2
+   0.200000: Section(M, U, "PH") & Spoken(M,U,S)  & SpeakerType(M, S, "public") -> CommentType(M, U, "PH") ^2
+   0.200000: Section(M, U, "PH") & Spoken(M,U,S)  & SpeakerType(M, S, "other") -> CommentType(M, U, "Other") ^2
+   0.053292: !SpeakerType(M, S, "public") ^2
