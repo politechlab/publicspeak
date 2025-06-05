@@ -3,10 +3,11 @@ import argparse
 from typing import Dict, Any, Optional
 from pathlib import Path
 from collections import defaultdict
-from transcribe.transcribe import use_whisperx, save_transcription_result
-from llm_processor.llm_processor import process_with_llm
-from public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
+from pipeline.transcribe.transcribe import use_whisperx, save_transcription_result
+from pipeline.llm_processor.llm_processor import process_with_llm
+from pipeline.public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
 import json
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,7"
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Public Speech Processing Pipeline')
@@ -18,7 +19,7 @@ def parse_args():
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
     parser.add_argument('--model_name', type=str, default='large-v2',
                       help='WhisperX model name')
-    parser.add_argument('--device', type=str, default='cuda',
+    parser.add_argument('--device', type=str, default='cuda:1',
                       help='Device to use (cuda/cpu)')
     parser.add_argument('--batch_size', type=int, default=16,
                       help='Batch size for transcription')

@@ -23,9 +23,11 @@ def use_whisperx(device: str, audio_file: str, hf_token: str, batch_size: int, c
     # load model
     # TODO: 检查是否可行
     # model = whisperx.load_model(model_name, device, compute_type=compute_type)
-    
+    print(device)
     if ":" in device:
         dev, dev_ind = device.split(":")[0], device.split(":")[1]
+        print("============")
+        print(dev, dev_ind)
         model = whisperx.load_model(model_name, dev, device_index=int(dev_ind), compute_type=compute_type, asr_options={"initial_prompt": "Add Punctuation:"})
     else:
         model = whisperx.load_model(model_name, device, compute_type=compute_type, asr_options={"initial_prompt": "Hello."})
