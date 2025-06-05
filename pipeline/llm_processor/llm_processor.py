@@ -21,11 +21,15 @@ def process_with_llm(content: str, model: str = None, temperature: float = None,
     
     # Get prompt template based on mode
     if args is not None and hasattr(args, 'mode'):
-        prompt_template = PROMPTS.get(args.mode)
-        if not prompt_template:
-            raise ValueError(f"Unknown mode: {args.mode}")
+        if args.mode == "find_public_trigger":
+            prompt_template = PROMPTS.get("find_public_trigger")
+        else:
+            prompt_template = PROMPTS.get("find_public_trigger_general")  # 或者你定义的其他 key
+            if not prompt_template:
+                raise ValueError(f"Unknown mode: {args.mode}")
     else:
         raise ValueError("Mode must be specified in args")
+
     
     # Apply cut_off if args is provided and mode is find_public_trigger
     if args.mode == 'find_public_trigger':
@@ -33,7 +37,7 @@ def process_with_llm(content: str, model: str = None, temperature: float = None,
         return ask_llm(prompt_template, content, model, temperature)
     
     # Process in chunks if content is too long (for find_public_trigger_general)
-    if args.mode == 'find_public_trigger_general':
+    else:
         the_json = {}
         total_json = {}
         length = 0
@@ -77,6 +81,3 @@ def process_with_llm(content: str, model: str = None, temperature: float = None,
                         total_json[key] = new_json[key]
         
         return total_json
-    
-    # Default to basic ask_llm if no mode specified
-    return ask_llm(prompt_template, content, model, temperature) 

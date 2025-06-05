@@ -1,9 +1,14 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,7"
 import json
 from typing import Dict, Any
 import whisperx
 import gc
 import torch
+
+print("CUDA Available:", torch.cuda.is_available())
+print("Device count:", torch.cuda.device_count())
+print("Current device:", torch.cuda.current_device() if torch.cuda.is_available() else "N/A")
 
 def use_whisperx(device: str, audio_file: str, hf_token: str, batch_size: int, compute_type: str, model_name: str) -> Dict[str, Any]:
     """

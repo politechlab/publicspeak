@@ -70,7 +70,7 @@ def ask_llm(initial_prompt: str, content: str, model: str = "gpt-4", temperature
         {"role": "user", "content": msg}
     ]
 
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature
@@ -103,7 +103,7 @@ def ask_llm_multi(initial_prompt: str, content: str, the_json: Dict[str, Any], m
         {"role": "user", "content": msg}
     ]
 
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature
@@ -136,7 +136,7 @@ def ask_llm_new(initial_prompt: str, content: str, model: str = "gpt-4", tempera
         {"role": "user", "content": msg}
     ]
 
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature

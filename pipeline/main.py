@@ -7,7 +7,7 @@ from pipeline.transcribe.transcribe import use_whisperx, save_transcription_resu
 from pipeline.llm_processor.llm_processor import process_with_llm
 from pipeline.public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
 import json
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,7"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Public Speech Processing Pipeline')
@@ -49,7 +49,8 @@ def get_transcription_result(args) -> Dict[str, Any]:
         Dict[str, Any]: Transcription result
     """
     model_name = args.model_name
-    device = args.device
+    # device = args.device
+    device = "cuda"
     hf_token = os.getenv("HF_TOKEN")
     audio_file = args.audio_file
     batch_size = args.batch_size
@@ -203,9 +204,10 @@ def main():
         run_extraction(args, trigger_path)
     
     elif args.mode == "full":
-        if not args.audio_file:
-            raise ValueError("audio_file is required for full mode")
-        ts_path = run_transcribe(args)
+        # if not args.audio_file:
+        #     raise ValueError("audio_file is required for full mode")
+        # ts_path = run_transcribe(args)
+        ts_path = '/home/shared/turbo_data/localgov/temp/AA_2022_11_10.json'
         trigger_path = run_llm_processing(args, ts_path)
         run_extraction(args, trigger_path)
 
