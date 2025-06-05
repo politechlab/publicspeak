@@ -13,6 +13,7 @@ from datasets import Dataset, DatasetDict
 import functools 
 import evaluate
 import argparse
+from config import Paths, Settings
 
 
 def seed_everything(seed_value):
@@ -29,25 +30,29 @@ def seed_everything(seed_value):
 
 
 def main(args):
-    model_name = args.model_name
-    city = args.city
-    lr = args.lr
-    epoch = args.epoch
-    seed = args.seed
-    bs = args.batch_size
+    # Use settings from config
+    model_name = Settings.MODEL_NAME
+    city = Settings.CITY
+    lr = Settings.LEARNING_RATE
+    epoch = Settings.EPOCHS
+    seed = Settings.SEED
+    bs = Settings.BATCH_SIZE
     
     seed_everything(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    os.environ["WANDB_DIR"] = current_dir
-    with open(current_dir + f"/../../data/raw_train/{city}_train.json") as f:
+    # Use paths from config
+    train_file = Paths.RAW_DIR / Settings.TRAIN_FILE.format(city=city)
+    val_file = Paths.RAW_DIR / Settings.VAL_FILE.format(city=city)
+    test_file = Paths.RAW_DIR / Settings.TEST_FILE.format(city=city)
+    
+    with open(train_file) as f:
         train = json.load(f)
         
-    with open(current_dir + f"/../../data/raw_val/{city}_val.json") as f:
+    with open(val_file) as f:
         val = json.load(f)
         
-    with open(current_dir + f"/../../data/raw_test/{city}_test.json") as f:
+    with open(test_file) as f:
         test = json.load(f)
         
     merged = []
@@ -83,46 +88,32 @@ def main(args):
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
     def compute_precision_recall(y_test, y_pred_encode):
-
         t = prfs(y_test, y_pred_encode, average=None)
         y_s = set(y_test)
         y_pred_s = set(y_pred_encode)
         if 2 not in y_s and 2 not in y_pred_s:
-            return t[0][1], 1, t[1][1], 1, t[2][1], 1
-        return t[0][1], t[0][2], t[1][1], t[1][2], t[2][1], t[2][2]
-    def compute_precision_recall(y_test, y_pred_encode):
-
-        t = prfs(y_test, y_pred_encode, average=None)
-        y_s = set(y_test)
-        y_pred_s = set(y_pred_encode)
-        if 2 not in y_s and 2 not in y_pred_s:
-            # TODO: assign N/A
             return t[0][1], 1, t[1][1], 1, t[2][1], 1
         if 1 not in y_s and 1 not in y_pred_s:
-            # TODO: assign N/A
             return 1, t[0][1], 1, t[1][1], 1, t[2][1]
         return t[0][1], t[0][2], t[1][1], t[1][2], t[2][1], t[2][2]
 
     def compute_precision_recall_bad(y_test, y_pred_encode):
-
         t = prfs(y_test, y_pred_encode, average=None)
         y_s = set(y_test)
         y_pred_s = set(y_pred_encode)
         if 2 not in y_s and 2 not in y_pred_s:
-            # TODO: assign N/A
             return t[0][1], None, t[1][1], None, t[2][1], None
         if 1 not in y_s and 1 not in y_pred_s:
-            # TODO: assign N/A
             return None, t[0][1], None, t[1][1], None, t[2][1]
         return t[0][1], t[0][2], t[1][1], t[1][2], t[2][1], t[2][2]
 
     def precision_recall(y, y_pred):
         pre0, pre1, rec0, rec1, f10, f11 = compute_precision_recall(y, y_pred)
-        return  pre0, pre1, rec0, rec1, f10, f11
+        return pre0, pre1, rec0, rec1, f10, f11
 
     def precision_recall_bad(y, y_pred):
         pre0, pre1, rec0, rec1, f10, f11 = compute_precision_recall_bad(y, y_pred)
-        return  pre0, pre1, rec0, rec1, f10, f11
+        return pre0, pre1, rec0, rec1, f10, f11
 
     accuracy = evaluate.load("accuracy")
     def compute_metrics(eval_pred):
@@ -135,14 +126,12 @@ def main(args):
     )
 
     def get_pred(data, train_limit = 0, test_limit=0):
-        
         # The ith group is used as the test set
         val_set = data[train_limit: test_limit]
         for i in val_set:
             print(len(i))
         # All other groups are combined into the training set
         training_set = data[:train_limit]
-        
         test_set = data[test_limit:]
         
         for ii in training_set:
@@ -150,20 +139,24 @@ def main(args):
                 for k in item:
                     if type(item["text"]) != str:
                         print(i, item["text"], type(item["text"]))
+                        
         tds = Dataset.from_pandas(functools.reduce(lambda a, b: a.append(b, ignore_index=True), training_set))
         vds = Dataset.from_pandas(functools.reduce(lambda a, b: a.append(b, ignore_index=True), val_set))
         ttd = Dataset.from_pandas(functools.reduce(lambda a, b: a.append(b, ignore_index=True), test_set))
 
         ds = DatasetDict()
-
         ds['train'] = tds
         ds['val'] = vds
         ds['test'] = ttd
 
         tokenized_ds = ds.map(preprocess_function, batched=True)
 
+        # Use model output directory from config
+        model_output_dir = Paths.PLM_DIR / "models"
+        model_output_dir.mkdir(parents=True, exist_ok=True)
+
         training_args = TrainingArguments(
-            output_dir=os.path.join(current_dir, "plm_model"),
+            output_dir=str(model_output_dir),
             learning_rate=lr,
             per_device_train_batch_size=bs,
             per_device_eval_batch_size=bs,
@@ -198,53 +191,48 @@ def main(args):
 
         pre0, pre1, rec0, rec1, f10, f11 = precision_recall(pred, label)
         pre0_b, pre1_b, rec0_b, rec1_b, f10_b, f11_b = precision_recall_bad(pred, label)
-        
         pre0_val, pre1_val, rec0_val, rec1_val, f10_val, f11_val = precision_recall_bad(val_pred, val_label)
 
-        return  pre0_val, pre1_val, rec0_val, rec1_val, f10_val, f11_val, pre0, pre1, rec0, rec1, f10, f11, pre0_b, pre1_b, rec0_b, rec1_b, f10_b, f11_b, pred, label, pred_train, val_pred
+        return pre0_val, pre1_val, rec0_val, rec1_val, f10_val, f11_val, pre0, pre1, rec0, rec1, f10, f11, pre0_b, pre1_b, rec0_b, rec1_b, f10_b, f11_b, pred, label, pred_train, val_pred
 
     pre0_val, pre1_val, rec0_val, rec1_val, f10_val, f11_val, pre0, pre1, rec0, rec1, f10, f11, pre0_b, pre1_b, rec0_b, rec1_b, f10_b, f11_b, pred, label, pred_train, val_pred = get_pred(data, train_limit, test_limit)
 
-    if "roberta" in model_name:
-        name = "roberta"
-    else:
-        name = "distilbert"
-
-    metrics = {"precision_comment_val": pre0_val, 
-               "precision_hearing_val": pre1_val, 
-               "recall_comment_val": rec0_val, 
-               "recall_hearing_val": rec1_val, 
-               "f1_comment_val": f10_val, 
-               "f1_hearing_val": f11_val,
-               "precision_comment": pre0, 
-               "precision_hearing": pre1, 
-               "recall_comment": rec0, 
-               "recall_hearing": rec1, 
-               "f1_comment": f10, 
-               "f1_hearing": f11, 
-               "precision_comment_pess": pre0_b, 
-               "precision_hearing_pess": pre1_b, 
-               "recall_comment_pess": rec0_b, 
-               "recall_hearing_pess": rec1_b, 
-               "f1_comment_pess": f10_b, 
-               "f1_hearing_pess": f11_b, 
-              }
+    metrics = {
+        "precision_comment_val": pre0_val, 
+        "precision_hearing_val": pre1_val, 
+        "recall_comment_val": rec0_val, 
+        "recall_hearing_val": rec1_val, 
+        "f1_comment_val": f10_val, 
+        "f1_hearing_val": f11_val,
+        "precision_comment": pre0, 
+        "precision_hearing": pre1, 
+        "recall_comment": rec0, 
+        "recall_hearing": rec1, 
+        "f1_comment": f10, 
+        "f1_hearing": f11, 
+        "precision_comment_pess": pre0_b, 
+        "precision_hearing_pess": pre1_b, 
+        "recall_comment_pess": rec0_b, 
+        "recall_hearing_pess": rec1_b, 
+        "f1_comment_pess": f10_b, 
+        "f1_hearing_pess": f11_b, 
+    }
     
-    
-    out_dir = os.path.abspath(os.path.join(current_dir, "../../data/PLM_indicators"))
-    with open(out_dir + f"/{city}_pred_LOO_roberta.json", "w") as f:
+    # Use output path from config
+    output_file = Paths.PLM_DIR / Settings.PLM_PRED_FILE.format(city=city)
+    with open(output_file, "w") as f:
         json.dump({"pred": pred, "train_pred": pred_train, "val_pred": val_pred, "metrics": metrics}, f)
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some arguments.")
-    parser.add_argument("--model_name", type=str, default="roberta-large")
-    parser.add_argument("--city", type=str, default="AA")
-    parser.add_argument("--lr", type=float, default=2e-5)
-    parser.add_argument("--epoch", type=int, default=7)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--model_name", type=str, default=Settings.MODEL_NAME)
+    parser.add_argument("--city", type=str, default=Settings.CITY)
+    parser.add_argument("--lr", type=float, default=Settings.LEARNING_RATE)
+    parser.add_argument("--epoch", type=int, default=Settings.EPOCHS)
+    parser.add_argument("--seed", type=int, default=Settings.SEED)
+    parser.add_argument("--batch_size", type=int, default=Settings.BATCH_SIZE)
     args = parser.parse_args()
     
     main(args)
