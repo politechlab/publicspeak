@@ -130,7 +130,7 @@ def save_llm_result(result: Dict[str, Any], ts_path: str, mode: str) -> str:
     Returns:
         str: Path to the saved file
     """
-    trigger_path = os.path.splitext(ts_path)[0] + f"_trigger{'_general' if mode == 'find_public_trigger_general' else ''}.json"
+    trigger_path = os.path.splitext(ts_path)[0] + f"_trigger{'_general' if mode != 'find_public_trigger' else ''}.json"
     with open(trigger_path, "w") as f:
         json.dump(result, f)
     

@@ -36,7 +36,7 @@ class Settings:
     COMMENT_TYPE_MAPPING = ["Other", "PC", "PH"]
     
     # file naming settings
-    PLM_PRED_FILE = "{city}_pred_LOO_roberta.json"
-    TRAIN_FILE = "{city}_train.json"
-    VAL_FILE = "{city}_val.json"
-    TEST_FILE = "{city}_test.json" 
+    PLM_PRED_FILE = f"{city}_pred_LOO_roberta.json"
+    TRAIN_FILE = f"{city}_train.json"
+    VAL_FILE = f"{city}_val.json"
+    TEST_FILE = f"{city}_test.json" 
