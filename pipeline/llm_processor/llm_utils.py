@@ -4,18 +4,10 @@ import openai
 from typing import Dict, Any, Optional, List
 
 # 关键词列表，用于cut_off函数
-keyword_list = [
-    "public comment",
-    "public hearing",
-    "public meeting",
-    "public input",
-    "public testimony",
-    "public forum",
-    "public participation",
-    "public discussion",
-    "public feedback",
-    "public opinion"
-]
+keyword_list = ["citizen", "resident", "audience", "crowd", 
+                "citizens", "residents", "audiences", 
+                "communities", "comment", "comments", 
+               "hearing", "hearings"]
 
 def cut_off(content: str, args: Any) -> str:
     """
@@ -58,7 +50,7 @@ def cut_off(content: str, args: Any) -> str:
             temp_list.append(i) 
     return "\n".join(temp_list)
 
-def ask_gpt(initial_prompt: str, content: str, model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
+def ask_llm(initial_prompt: str, content: str, model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
     """
     Ask GPT model for processing
     
@@ -89,7 +81,7 @@ def ask_gpt(initial_prompt: str, content: str, model: str = "gpt-4", temperature
     except:
         return {}
 
-def ask_gpt_multi(initial_prompt: str, content: str, the_json: Dict[str, Any], model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
+def ask_llm_multi(initial_prompt: str, content: str, the_json: Dict[str, Any], model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
     """
     Ask GPT model for multi-turn processing
     
@@ -122,7 +114,7 @@ def ask_gpt_multi(initial_prompt: str, content: str, the_json: Dict[str, Any], m
     except:
         return {}
 
-def ask_gpt_new(initial_prompt: str, content: str, model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
+def ask_llm_new(initial_prompt: str, content: str, model: str = "gpt-4", temperature: float = 0) -> Dict[str, Any]:
     """
     Ask GPT model with new format
     
