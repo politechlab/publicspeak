@@ -6,14 +6,17 @@ from collections import defaultdict
 from pipeline.transcribe.transcribe import use_whisperx, save_transcription_result
 from pipeline.llm_processor.llm_processor import process_with_llm
 from pipeline.public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
+from pipeline.PLM.finetuned_one_val_out import get_pred
 import json
+from config import Paths, Settings
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Public Speech Processing Pipeline')
     
     # 转写相关参数
-    parser.add_argument('--mode', type=str, required=True, choices=['transcribe', 'process', 'extract', 'full'],
+    parser.add_argument('--mode', type=str, required=True, 
+                      choices=['transcribe', 'process', 'extract', 'plm', 'full'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -31,6 +34,18 @@ def parse_args():
                       help='GPT model version')
     parser.add_argument('--cut_off_th', type=int, default=50,
                       help='Threshold for cut_off function')
+    
+    # PLM相关参数
+    parser.add_argument('--plm_model_name', type=str, default=Settings.MODEL_NAME,
+                      help='PLM model name')
+    parser.add_argument('--city', type=str, default=Settings.CITY,
+                      help='City for PLM training')
+    parser.add_argument('--lr', type=float, default=Settings.LEARNING_RATE,
+                      help='Learning rate for PLM')
+    parser.add_argument('--epoch', type=int, default=Settings.EPOCHS,
+                      help='Number of epochs for PLM')
+    parser.add_argument('--seed', type=int, default=Settings.SEED,
+                      help='Random seed for PLM')
     
     # 输出相关参数
     parser.add_argument('--output_dir', type=str, default='output',
@@ -175,6 +190,48 @@ def save_extraction_result(result: Dict[str, Any], trigger_path: str) -> str:
     
     return public_path
 
+def get_plm_result(args, ts_path: str) -> Dict[str, Any]:
+    """
+    Get PLM processing result
+    
+    Args:
+        args: Command line arguments
+        ts_path: Path to the transcription file
+        
+    Returns:
+        Dict[str, Any]: PLM processing result
+    """
+    # 读取转录数据
+    with open(ts_path) as f:
+        transcript_data = json.load(f)
+    
+    # 使用PLM处理转录数据
+    from pipeline.PLM.finetuned_one_val_out import process_transcript
+    result = process_transcript(
+        transcript_data=transcript_data,
+        model_name=args.plm_model_name,
+        device=args.device
+    )
+    
+    return result
+
+def save_plm_result(result: Dict[str, Any], ts_path: str) -> str:
+    """
+    Save PLM processing result to file
+    
+    Args:
+        result: PLM processing result
+        ts_path: Path to the transcription file
+        
+    Returns:
+        str: Path to the saved file
+    """
+    plm_path = os.path.splitext(ts_path)[0] + "_plm.json"
+    with open(plm_path, "w") as f:
+        json.dump(result, f, indent=2)
+    
+    return plm_path
+
 def run_transcribe(args) -> str:
     """Run transcription process"""
     result = get_transcription_result(args)
@@ -190,6 +247,12 @@ def run_extraction(args, trigger_path: str) -> str:
     result = get_extraction_result(args, trigger_path)
     return save_extraction_result(result, trigger_path)
 
+def run_plm_processing(args, ts_path: str) -> str:
+    """Run PLM processing"""
+    from pipeline.PLM.finetuned_one_val_out import main as plm_main
+    plm_main()  # 直接运行PLM的main函数
+    return ts_path  # 返回原始ts_path，因为PLM的结果会保存在配置的路径中
+
 def main():
     """Main function to run the pipeline"""
     args = parse_args()
@@ -203,13 +266,16 @@ def main():
         trigger_path = run_llm_processing(args, args.ts_path)
         run_extraction(args, trigger_path)
     
+    elif args.mode == "plm":
+        run_plm_processing(args, None)  # ts_path在这里不需要
+    
     elif args.mode == "full":
-        # if not args.audio_file:
-        #     raise ValueError("audio_file is required for full mode")
-        # ts_path = run_transcribe(args)
-        ts_path = '/home/shared/turbo_data/localgov/temp/AA_2022_11_10.json'
+        if not args.audio_file:
+            raise ValueError("audio_file is required for full mode")
+        ts_path = run_transcribe(args)
         trigger_path = run_llm_processing(args, ts_path)
         run_extraction(args, trigger_path)
+        run_plm_processing(args, None)  # ts_path在这里不需要
 
 if __name__ == "__main__":
     main() 

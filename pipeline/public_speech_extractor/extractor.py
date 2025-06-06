@@ -80,12 +80,40 @@ def clean_and_find_manager(ts_path: str) -> Tuple[str, List[Dict[str, Any]]]:
     # 如果没有找到关键词，返回说话最多的说话人
     return top_3_keys[0], merged_data
 
-def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Dict[str, int], triggers: Dict[str, Any]) -> Dict[str, Any]:
+def count_long_text_ratio(clean_data: List[Dict[str, Any]], long_text_th: int = 50) -> Dict[str, float]:
     """
-    Extract public speech content
+    计算每个说话人的长文本比例
     
     Args:
-        args: arguments object
+        clean_data: 清理后的数据
+        long_text_th: 长文本阈值
+        
+    Returns:
+        Dict[str, float]: 每个说话人的长文本比例
+    """
+    merged_long_utterance_counts = defaultdict(int)
+    merged_utterance_counts = defaultdict(int)
+    
+    for entry in clean_data:
+        merged_utterance_counts[entry['speaker']] += 1
+        if len(entry["text"].split()) > long_text_th:
+            merged_long_utterance_counts[entry['speaker']] += 1
+            
+    ratio_dict = {}
+    for key in merged_utterance_counts:
+        if key not in merged_long_utterance_counts:
+            ratio_dict[key] = 0
+        else:
+            ratio_dict[key] = merged_long_utterance_counts[key]/merged_utterance_counts[key]
+            
+    return ratio_dict
+
+def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Dict[str, int], triggers: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract public speeches
+    
+    Args:
+        args: parameter object
         merged_data: merged data
         idx_mapping: index mapping
         triggers: triggers
@@ -93,27 +121,44 @@ def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Di
     Returns:
         Dict[str, Any]: extraction result
     """
-    result = {
-        'public_speeches': [],
-        'metadata': {
-            'total_segments': len(merged_data),
-            'triggers_used': list(triggers.keys())
-        }
-    }
+    # 计算每个说话人的长文本比例
+    ratio_list = count_long_text_ratio(merged_data, args.long_text_th)
     
-    # Extract public speech segments based on triggers
-    for trigger, indices in triggers.items():
-        for idx in indices:
-            if str(idx) in idx_mapping:
-                segment_idx = idx_mapping[str(idx)]
-                if segment_idx < len(merged_data):
-                    result['public_speeches'].append({
-                        'trigger': trigger,
-                        'content': merged_data[segment_idx],
-                        'index': segment_idx
-                    })
+    # 提取公共评论段落的起止位置
+    pub_comments = {}
+    se_pair = []
+    for trigger_id, trigger_info in triggers.items():
+        try:
+            start_idx = idx_mapping[str(trigger_info["start"]["numbering"]) + ". "]
+            end_idx = idx_mapping[str(trigger_info["end"]["numbering"]) + ". "]
+            pub_comments[trigger_id] = merged_data[start_idx: end_idx]
+            se_pair.append((start_idx, end_idx))
+        except:
+            se_pair.append((0, 0))
     
-    return result
+    # 找出公共评论段落外的说话人
+    outside_speaker = set()
+    for i in range(len(merged_data)):
+        isin = False
+        for st, ed in se_pair:
+            isin = isin or st < i < ed
+        if not isin:
+            outside_speaker.add(merged_data[i]["speaker"])
+    
+    # 提取公共评论内容
+    public = {}
+    
+    if pub_comments:
+        for trigger_id, segments in pub_comments.items():
+            public[trigger_id] = []
+            for segment in segments:
+                if (segment["speaker"] not in outside_speaker and 
+                    ratio_list[segment["speaker"]] >= args.ratio_count):
+                    public[trigger_id].append({"start": segment["start"], 
+                                        "speaker": segment["speaker"], 
+                                        "text": segment["text"]})
+    
+    return public
 
 def save_extraction_result(result: Dict[str, Any], output_path: str) -> None:
     """
