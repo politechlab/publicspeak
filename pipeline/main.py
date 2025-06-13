@@ -6,7 +6,6 @@ from collections import defaultdict
 from pipeline.transcribe.transcribe import use_whisperx, save_transcription_result
 from pipeline.llm_processor.llm_processor import process_with_llm
 from pipeline.public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
-from pipeline.PLM.finetuned_one_val_out import get_pred
 import json
 from config import Paths, Settings
 
@@ -34,6 +33,10 @@ def parse_args():
                       help='GPT model version')
     parser.add_argument('--cut_off_th', type=int, default=50,
                       help='Threshold for cut_off function')
+    parser.add_argument('--long_text_th', type=int, default=50,
+                      help='Threshold for count_long_text_ratio function')
+    parser.add_argument('--ratio_count', type=float, default=0.5,
+                       help='Threshold for identifying long utterance ratio')
     
     # PLM相关参数
     parser.add_argument('--plm_model_name', type=str, default=Settings.MODEL_NAME,

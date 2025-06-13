@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,4,7"
 import json
 from typing import Dict, Any
 import whisperx
