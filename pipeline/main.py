@@ -19,11 +19,11 @@ def parse_args():
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
-    parser.add_argument('--model_name', type=str, default='large-v2',
+    parser.add_argument('--model_name', type=str, default=Settings.WHISPER_MODEL_NAME,
                       help='WhisperX model name')
     parser.add_argument('--device', type=str, default='cuda:1',
                       help='Device to use (cuda/cpu)')
-    parser.add_argument('--batch_size', type=int, default=16,
+    parser.add_argument('--batch_size', type=int, default=Settings.BATCH_SIZE,
                       help='Batch size for transcription')
     parser.add_argument('--compute_type', type=str, default='float16',
                       help='Compute type for WhisperX')
@@ -49,6 +49,8 @@ def parse_args():
                       help='Number of epochs for PLM')
     parser.add_argument('--seed', type=int, default=Settings.SEED,
                       help='Random seed for PLM')
+    parser.add_argument('--plm_batch_size', type=int, default=Settings.PLM_BATCH_SIZE,
+                      help='Batch size for transcription')
     
     # 输出相关参数
     parser.add_argument('--output_dir', type=str, default='output',
@@ -253,13 +255,12 @@ def run_extraction(args, trigger_path: str) -> str:
 def run_plm_processing(args, ts_path: str) -> str:
     """Run PLM processing"""
     from pipeline.PLM.finetuned_one_val_out import main as plm_main
-    plm_main()  # 直接运行PLM的main函数
+    plm_main(args)  # 直接运行PLM的main函数
     return ts_path  # 返回原始ts_path，因为PLM的结果会保存在配置的路径中
 
 def main():
     """Main function to run the pipeline"""
     args = parse_args()
-    
     if args.mode == "transcribe":
         run_transcribe(args)
     

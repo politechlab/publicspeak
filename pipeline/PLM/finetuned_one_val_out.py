@@ -1,4 +1,5 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,4,7"
 from transformers import AutoTokenizer
 import torch
 import json
@@ -85,7 +86,7 @@ class PLMProcessor:
               val: Optional[List[pd.DataFrame]] = None,
               lr: float = Settings.LEARNING_RATE,
               epoch: int = Settings.EPOCHS,
-              bs: int = Settings.BATCH_SIZE) -> None:
+              bs: int = Settings.PLM_BATCH_SIZE) -> None:
         """
         训练模型，只做训练，不返回任何内容
         
@@ -134,7 +135,7 @@ class PLMProcessor:
             num_train_epochs=epoch,
             weight_decay=0.01,
             evaluation_strategy="epoch",  # 每个epoch进行评估
-            save_strategy="no",  # 不保存检查点
+            save_strategy="epoch",  # 不保存检查点
             load_best_model_at_end=True,  # 加载最佳模型
         )
 
@@ -295,25 +296,18 @@ def precision_recall_bad(y, y_pred):
     return pre0, pre1, rec0, rec1, f10, f11
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Process some arguments.")
-    parser.add_argument("--model_name", type=str, default=Settings.MODEL_NAME)
-    parser.add_argument("--city", type=str, default=Settings.CITY)
-    parser.add_argument("--lr", type=float, default=Settings.LEARNING_RATE)
-    parser.add_argument("--epoch", type=int, default=Settings.EPOCHS)
-    parser.add_argument("--seed", type=int, default=Settings.SEED)
-    parser.add_argument("--batch_size", type=int, default=Settings.BATCH_SIZE)
-    args = parser.parse_args()
+def main(args):
     
     # 创建处理器实例
+    print(args)
     processor = PLMProcessor(
-        model_name=args.model_name,
+        model_name=args.plm_model_name,
         seed=args.seed
     )
     
     # 加载数据
-    train_file = Paths.RAW_DIR / Settings.TRAIN_FILE.format(city=args.city)
-    test_file = Paths.RAW_DIR / Settings.TEST_FILE.format(city=args.city)
+    train_file = Paths.RAW_TRAIN_DIR / Settings.TRAIN_FILE.format(city=args.city)
+    test_file = Paths.RAW_TEST_DIR / Settings.TEST_FILE.format(city=args.city)
     
     with open(train_file) as f:
         train = json.load(f)
@@ -365,7 +359,7 @@ def main():
         val=val_data,  # 如果没有验证集，val_data为None，train方法会使用训练集作为验证集
         lr=args.lr,
         epoch=args.epoch,
-        bs=args.batch_size
+        bs=args.plm_batch_size
     )
     
     # 预测并评估
