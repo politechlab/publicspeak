@@ -20,7 +20,7 @@ class Settings:
     # trigger settings
     LONG_TEXT_THRESHOLD = 50
     RATIO_COUNT = 0.5
-    CUT_OFF_THRESHOLD = 200
+    CUT_OFF_THRESHOLD = 50
     GPT_VERSION = "gpt-4"
     
     # data processing settings
@@ -36,6 +36,7 @@ class Settings:
     COMMENT_TYPE_MAPPING = ["Other", "PC", "PH"]
     
     # file naming settings
+    PLM_BATCH_SIZE = 16
     PLM_PRED_FILE = f"{CITY}_pred_LOO_roberta.json"
     TRAIN_FILE = f"{CITY}_train.json"
     VAL_FILE = f"{CITY}_val.json"

@@ -15,7 +15,7 @@ def parse_args():
     
     # 转写相关参数
     parser.add_argument('--mode', type=str, required=True, 
-                      choices=['transcribe', 'process', 'extract', 'plm', 'full'],
+                      choices=['transcribe', 'process', 'extract', 'plm', 'full', 'generate_data'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -51,6 +51,10 @@ def parse_args():
                       help='Random seed for PLM')
     parser.add_argument('--plm_batch_size', type=int, default=Settings.PLM_BATCH_SIZE,
                       help='Batch size for transcription')
+    
+    # 生成数据相关参数 TODO
+    parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
+                      help='PLM prediction file name')
     
     # 输出相关参数
     parser.add_argument('--output_dir', type=str, default='output',
@@ -258,6 +262,22 @@ def run_plm_processing(args, ts_path: str) -> str:
     plm_main(args)  # 直接运行PLM的main函数
     return ts_path  # 返回原始ts_path，因为PLM的结果会保存在配置的路径中
 
+def run_generate_data(args) -> None:
+    """Run data generation process"""
+    from pipeline.generate_processed_data.generate_processed_data import generate_processed_data
+    
+    # 设置数据目录
+    data_dir = os.path.join(args.output_dir, "data")
+    
+    # 调用generate_processed_data函数
+    generate_processed_data(
+        city=args.city,
+        data_dir=data_dir,
+        output_dir=os.path.join(args.output_dir, args.city),
+        plm_file_name=args.plm_file_name,
+        seed=args.seed
+    )
+
 def main():
     """Main function to run the pipeline"""
     args = parse_args()
@@ -272,6 +292,9 @@ def main():
     
     elif args.mode == "plm":
         run_plm_processing(args, None)  # ts_path在这里不需要
+    
+    elif args.mode == "generate_data":
+        run_generate_data(args)
     
     elif args.mode == "full":
         if not args.audio_file:
