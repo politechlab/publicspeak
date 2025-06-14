@@ -18,6 +18,7 @@ class Paths:
     WAV_INPUT_DIR = AUDIO_DIR / "input"
     WAV_OUTPUT_DIR = AUDIO_DIR / "output"
     TS_OUTPUT_DIR = TRANSCRIPTS_DIR / "new_ts_output"
+    PSL_DATA_DIR = DATA_DIR / "processed_train_data_TEST"
     
     # processed data path
     PROCESSED_DIR = DATA_DIR / "processed"

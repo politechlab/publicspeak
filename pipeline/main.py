@@ -59,6 +59,8 @@ def parse_args():
     # 输出相关参数
     parser.add_argument('--output_dir', type=str, default='output',
                       help='Output directory')
+    parser.add_argument('--psl_data_dir', type=str, default=Paths.PSL_DATA_DIR,
+                      help='PSL data directory')
     
     return parser.parse_args()
 
@@ -273,7 +275,7 @@ def run_generate_data(args) -> None:
     generate_processed_data(
         city=args.city,
         data_dir=data_dir,
-        output_dir=os.path.join(args.output_dir, args.city),
+        output_dir=os.path.join(args.psl_data_dir, args.city),
         plm_file_name=args.plm_file_name,
         seed=args.seed
     )
