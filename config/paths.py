@@ -7,6 +7,8 @@ class Paths:
     
     # raw data path
     RAW_DIR = DATA_DIR / "raw"
+    RAW_TRAIN_DIR = DATA_DIR / "raw_train"
+    RAW_TEST_DIR = DATA_DIR / "raw_test"
     AUDIO_DIR = RAW_DIR / "audio"
     VIDEO_DIR = RAW_DIR / "video"
     TRANSCRIPTS_DIR = RAW_DIR / "transcripts"

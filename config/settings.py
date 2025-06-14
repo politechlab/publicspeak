@@ -36,7 +36,7 @@ class Settings:
     COMMENT_TYPE_MAPPING = ["Other", "PC", "PH"]
     
     # file naming settings
-    PLM_BATCH_SIZE = 16
+    PLM_BATCH_SIZE = 8
     PLM_PRED_FILE = f"{CITY}_pred_LOO_roberta.json"
     TRAIN_FILE = f"{CITY}_train.json"
     VAL_FILE = f"{CITY}_val.json"
