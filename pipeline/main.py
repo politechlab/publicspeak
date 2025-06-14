@@ -267,7 +267,7 @@ def run_generate_data(args) -> None:
     from pipeline.generate_processed_data.generate_processed_data import generate_processed_data
     
     # 设置数据目录
-    data_dir = os.path.join(args.output_dir, "data")
+    data_dir = Paths.DATA_DIR
     
     # 调用generate_processed_data函数
     generate_processed_data(

@@ -495,11 +495,11 @@ def LOO(data, output="../data/public_comments"):
     testv_set = sum(testv_set, [])
     run_through(training_set, test_set, testv_set, output=output)
         
-data = [truth[i] for i in truth]
+# data = [truth[i] for i in truth]
 
-#cross_val(data, cv=5, output="/home/shared/starter_code_public_comments/data/test_data_gen/AA")
-#print(f"{out_dir}/{city}")
-LOO(data, output=f"{out_dir}/{city}")
+# #cross_val(data, cv=5, output="/home/shared/starter_code_public_comments/data/test_data_gen/AA")
+# #print(f"{out_dir}/{city}")
+# LOO(data, output=f"{out_dir}/{city}")
 
 def make_longUtter(example, speaker_long_dict, threshold=50):
     """
