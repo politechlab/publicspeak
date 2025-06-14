@@ -137,6 +137,12 @@ def generate_processed_data(city: str,
     if not os.path.exists(subdir_path):
         os.makedirs(subdir_path)
         
+    # 获取ID映射
+    i2t, t2i = assign_comment_index(truth)
+    rename_speaker(truth)
+    i2m, m2i = assign_meeting_id(truth)
+    info2t, t2info = assign_info(truth)
+        
     # 保存映射
     with open(os.path.join(subdir_path, "all_id_mapping.json"), "w") as f:
         json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
@@ -458,48 +464,6 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     write_a_file(testv_comment_phrase, output + "/test/comment_phrase.txt")
     write_a_file(testv_next_phrase, output + "/test/next_phrase.txt")
     write_a_file(testv_name_phrase, output + "/test/name_phrase.txt")
-
-def LOO(data, output="../data/public_comments"):
-    #random.shuffle(data)
-    
-    if not os.path.exists(output):
-        os.makedirs(output)
-    subdir_path = os.path.join(output, "mapping")
-    if not os.path.exists(subdir_path):
-        os.makedirs(subdir_path)
-    with open(os.path.join(subdir_path, "all_id_mapping.json"), "w") as f:
-        json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
-    
-    subdirs = ["train", "eval","test"]
-    for subdir in subdirs:
-        subdir_path = os.path.join(output, subdir)
-        if not os.path.exists(subdir_path):
-            os.makedirs(subdir_path)
-    # print(len(data))
-    training_set = data[:train_limit]
-    test_set = data[train_limit: test_limit]
-    testv_set = data[test_limit:]
-    for t in test_set:
-        print(len(t))
-    print("===")
-    for t in testv_set:
-        print(len(t))
-    print("===")
-    for t in training_set:
-        print(len(t))
-    print("===")
-    # All other groups are combined into the training set
-    #training_set = [file for j in range(len(groups)) if j != i for file in groups[j]]
-    training_set = sum(training_set, [])
-    test_set = sum(test_set, [])
-    testv_set = sum(testv_set, [])
-    run_through(training_set, test_set, testv_set, output=output)
-        
-# data = [truth[i] for i in truth]
-
-# #cross_val(data, cv=5, output="/home/shared/starter_code_public_comments/data/test_data_gen/AA")
-# #print(f"{out_dir}/{city}")
-# LOO(data, output=f"{out_dir}/{city}")
 
 def make_longUtter(example, speaker_long_dict, threshold=50):
     """
@@ -921,3 +885,213 @@ def make_phrase(example, phrases):
         if p in txt.lower():
             val = "1.0"
     return get_line([M, utt_index, val])
+
+def get_line(l):
+    """
+    将列表转换为制表符分隔的字符串
+    
+    Args:
+        l: 输入列表
+        
+    Returns:
+        str: 制表符分隔的字符串
+    """
+    return "\t".join(l)+"\n"
+
+def write_a_file(alist, filename):
+    """
+    将列表写入文件
+    
+    Args:
+        alist: 要写入的列表
+        filename: 目标文件名
+    """
+    with open(filename,'w') as f:
+        for l in alist:
+            f.write(l)
+
+def assign_comment_index(truth):
+    """
+    为评论分配索引
+    
+    Args:
+        truth: 数据字典
+        
+    Returns:
+        Tuple[Dict, Dict]: 索引到文本和文本到索引的映射
+    """
+    k = 0
+    ind_to_text, text_to_ind = {}, {}
+    for i in truth:
+        for j in range(len(truth[i])):
+            truth[i][j]["index"] = str(k)
+            text_to_ind[i + ": " + truth[i][j]["text"]] = str(k)
+            ind_to_text[str(k)] = truth[i][j]["text"]
+            k += 1
+    return ind_to_text, text_to_ind
+
+def rename_speaker(truth):
+    """
+    重命名说话者
+    
+    Args:
+        truth: 数据字典
+    """
+    k = 0
+    for i in truth:
+        for j in range(len(truth[i])):
+            truth[i][j]["speaker"] += "_" + str(k)
+        k += 1
+
+def assign_meeting_id(truth):
+    """
+    为会议分配ID
+    
+    Args:
+        truth: 数据字典
+        
+    Returns:
+        Tuple[Dict, Dict]: 索引到会议和会议到索引的映射
+    """
+    k = 0
+    ind_to_m, m_to_ind = {}, {}
+    for i in truth:
+        ind_to_m[k] = i
+        m_to_ind[i] = k
+        for j in range(len(truth[i])):
+            truth[i][j]["meeting"] = str(k)
+        k += 1
+    return ind_to_m, m_to_ind
+
+def assign_info(truth):
+    """
+    分配信息映射
+    
+    Args:
+        truth: 数据字典
+        
+    Returns:
+        Tuple[Dict, Dict]: 信息到文本和文本到信息的映射
+    """
+    k = 0
+    info_to_t, t_to_info = {}, {}
+    for i in truth:
+        for j in range(len(truth[i])):
+            info_to_t[truth[i][j]["meeting"] + ", " + truth[i][j]["index"] + ", " + truth[i][j]["speaker"]] = truth[i][j]["text"]
+            t_to_info[i + ", " + truth[i][j]["index"] + ": " + truth[i][j]["text"]] = truth[i][j]["meeting"] + ", " + truth[i][j]["index"] + ", " + truth[i][j]["speaker"]
+            k += 1
+    return info_to_t, t_to_info
+
+def self_tokenizer(text):
+    """
+    自定义分词器
+    
+    Args:
+        text: 输入文本
+        
+    Returns:
+        List[str]: 分词结果
+    """
+    def remove_punc(text):
+        text = re.sub("[^0-9A-Za-z ]", "" , text)
+        return text
+
+    def lemmatize(text):
+        lemma = WordNetLemmatizer()
+        tokens = text.split()
+        return ' '.join([lemma.lemmatize(t, pos = 'v') for t in tokens])
+    
+    def remove_stopwords(text):
+        stop_words = stopwords.words('english')
+        tokens = [w for w in text.split() if w.lower() not in stop_words]
+        return ' '.join(tokens)
+    
+    text = " ".join([w for w in word_tokenize(text)])
+    
+    #text = lemmatize(text) # lemmatizing
+    #text = remove_stopwords(text)
+    #text = remove_punc(text) # remove punctuation and symbols
+    #text = text.lower() # lowercase
+    
+    return text.split()    
+
+class CustomVectorizer(CountVectorizer):
+    """
+    自定义向量化器
+    """
+    def __init__(self):
+        self.stop_words = stopwords.words('english')
+        self.wt = word_tokenize
+        self.min_df = 2
+        super(CustomVectorizer, self).__init__(tokenizer=lambda x: x.split(),
+                                        ngram_range=(1, 1),
+                                       lowercase=False,
+                                        min_df=0)
+        
+    def self_tokenizer(self, text, 
+                      lem=True, 
+                      rm_stopwords=True,
+                      rm_punc=True,
+                      lowercase=True,
+                      low_df=0):
+        """
+        自定义分词器
+        
+        Args:
+            text: 输入文本
+            lem: 是否进行词形还原
+            rm_stopwords: 是否移除停用词
+            rm_punc: 是否移除标点符号
+            lowercase: 是否转换为小写
+            low_df: 最小文档频率
+            
+        Returns:
+            List[str]: 分词结果
+        """
+        def remove_punc(text):
+            text = re.sub("[^0-9A-Za-z ]", "" , text)
+            return text
+
+        def lemmatize(text):
+            lemma = WordNetLemmatizer()
+            tokens = text.split()
+            return ' '.join([lemma.lemmatize(t, pos = 'v') for t in tokens])
+
+        def remove_stopwords(text):
+            stop_words = stopwords.words('english')
+            tokens = [w for w in text.split() if w.lower() not in stop_words]
+            return ' '.join(tokens)
+        
+        wt = word_tokenize
+        text = " ".join([w for w in wt(text)])
+        if lem:
+            text = lemmatize(text) # lemmatizing
+        if rm_stopwords:
+            text = remove_stopwords(text)
+        if rm_punc:
+            text = remove_punc(text) # remove punctuation and symbols
+        if lowercase:
+            text = text.lower() # lowercase
+        return text.split() 
+    
+    def prepare_doc(self, docs):
+        """
+        准备文档
+        
+        Args:
+            docs: 文档列表
+            
+        Returns:
+            List[str]: 处理后的文档列表
+        """
+        min_df=2
+        tokens = [self.self_tokenizer(y) for y in docs]
+        c = Counter(sum(tokens, []))
+        new_docs = []
+        for d in docs:
+            new_d = self.self_tokenizer(d)
+            for i in range(len(new_d)):
+                if c[new_d[i]] <= min_df:
+                    new_d[i] = "[UNKNOWN]"
+            new_docs.append(" ".join(new_d))
+        return new_docs
