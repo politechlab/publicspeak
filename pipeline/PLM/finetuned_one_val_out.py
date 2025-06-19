@@ -156,6 +156,12 @@ class PLMProcessor:
     def predict(self, test_set: List[pd.DataFrame]) -> List[int]:
         """
         对test_set进行推理，返回预测结果
+        
+        Args:
+            test_set: 测试数据列表，每个元素是一个DataFrame，包含text列
+            
+        Returns:
+            List[int]: 预测结果列表
         """
         if not test_set:
             return []
@@ -230,10 +236,9 @@ class PLMProcessor:
             
         # 准备数据
         data = []
-        for segment in transcript_data['segments']:
+        for i, item in enumerate(transcript_data):
             data.append({
-                'text': segment['text'],
-                'label': 0  # 默认标签
+                'text': item['text']
             })
         
         # 准备数据集
@@ -252,19 +257,43 @@ class PLMProcessor:
         pred = np.argmax(predictions.predictions, axis=1).tolist()
         
         # 整理结果
-        result = {
-            'predictions': pred,
-            'segments': []
-        }
+        result = [
+            'pred': pred
+        ]
         
-        # 添加原始文本信息
-        for i, pred in enumerate(pred):
-            result['segments'].append({
-                'text': data[i]['text'],
-                'prediction': int(pred),
-                'start': transcript_data['segments'][i]['start'],
-                'end': transcript_data['segments'][i]['end']
-            })
+        return result
+
+    # TODO: Check if this function is needed.
+    def process_test_file(self, test_file: str) -> Dict[str, Any]:
+        """
+        处理测试文件，与main函数中的逻辑一致
+        
+        Args:
+            test_file: 测试文件路径
+            
+        Returns:
+            Dict[str, Any]: 处理结果
+        """
+        if self.model is None or self.tokenizer is None:
+            raise ValueError("Model not loaded. Please call load_trained_model first.")
+            
+        # 加载测试数据
+        with open(test_file) as f:
+            test = json.load(f)
+        
+        # 准备测试集（不需要label）
+        test_data = []
+        for k in test:
+            df = pd.DataFrame([[str(v["text"])] for v in test[k]], columns=["text"])
+            test_data.append(df)
+        
+        # 进行预测
+        test_pred = self.predict(test_data)
+        
+        # 整理结果
+        result = {
+            "pred": test_pred
+        }
         
         return result
 

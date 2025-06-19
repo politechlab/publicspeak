@@ -15,7 +15,7 @@ def parse_args():
     
     # 转写相关参数
     parser.add_argument('--mode', type=str, required=True, 
-                      choices=['transcribe', 'process', 'extract', 'plm_train', 'plm_predict', 'full', 'generate_data'],
+                      choices=['transcribe', 'process', 'extract', 'plm_train', 'plm_predict', 'plm_test', 'full', 'generate_data'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -264,7 +264,40 @@ def run_plm_training(args) -> None:
     plm_main(args)  # 直接运行PLM的main函数进行训练
 
 def run_plm_prediction(args, ts_path: str) -> str:
-    """Run PLM prediction using trained model"""
+    """Run PLM prediction using trained model on transcript"""
+    from pipeline.PLM.finetuned_one_val_out import PLMProcessor
+    from pipeline.public_speech_extractor.extractor import clean_and_find_manager
+    from config import Paths, Settings
+    
+    # 创建PLM处理器实例
+    processor = PLMProcessor(
+        model_name=args.plm_model_name,
+        device=args.device,
+        seed=args.seed
+    )
+    
+    # 加载已训练的模型
+    processor.load_trained_model()
+    
+    # 先经过clean_and_find_manager处理
+    manager, merged_data = clean_and_find_manager(ts_path)
+    
+    # merged_data已经是transcript格式，直接使用
+    transcript_data = merged_data
+    
+    # 处理转录数据
+    result = processor.process_transcript(transcript_data)
+    
+    # 结合文件名和PLM_DIR路径
+    file_name = os.path.splitext(os.path.basename(ts_path))[0] + "_plm.json"
+    output_file = Paths.PLM_DIR / file_name
+    with open(output_file, "w") as f:
+        json.dump(result, f, indent=2)
+    
+    return str(output_file)
+
+def run_plm_test(args, test_file: str) -> str:
+    """Run PLM prediction using trained model on test file"""
     from pipeline.PLM.finetuned_one_val_out import PLMProcessor
     
     # 创建PLM处理器实例
@@ -277,22 +310,15 @@ def run_plm_prediction(args, ts_path: str) -> str:
     # 加载已训练的模型
     processor.load_trained_model()
     
-    # 如果有转录文件，进行预测
-    if ts_path:
-        with open(ts_path) as f:
-            transcript_data = json.load(f)
-        
-        # 处理转录数据
-        result = processor.process_transcript(transcript_data)
-        
-        # 保存结果
-        plm_path = os.path.splitext(ts_path)[0] + "_plm.json"
-        with open(plm_path, "w") as f:
-            json.dump(result, f, indent=2)
-        
-        return plm_path
+    # 处理测试文件
+    result = processor.process_test_file(test_file)
     
-    return None
+    # 保存结果
+    plm_path = os.path.splitext(test_file)[0] + "_plm_test.json"
+    with open(plm_path, "w") as f:
+        json.dump(result, f, indent=2)
+    
+    return plm_path
 
 def run_generate_data(args) -> None:
     """Run data generation process"""
@@ -329,6 +355,11 @@ def main():
         if not args.ts_path:
             raise ValueError("ts_path is required for plm_predict mode")
         run_plm_prediction(args, args.ts_path)
+    
+    elif args.mode == "plm_test":
+        if not args.ts_path:
+            raise ValueError("ts_path is required for plm_test mode")
+        run_plm_test(args, args.ts_path)
     
     elif args.mode == "generate_data":
         run_generate_data(args)
