@@ -206,10 +206,15 @@ class PLMProcessor:
         if model_path is None:
             model_path = str(Paths.PLM_DIR / "models")
             
-        self._load_model()
+        # 加载tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        
+        # 加载训练好的模型
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.model.to(self.device)
         
+        print(f"Model loaded from: {model_path}")
+
     def process_transcript(self, transcript_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         处理转录文本

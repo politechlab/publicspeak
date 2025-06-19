@@ -15,7 +15,7 @@ def parse_args():
     
     # 转写相关参数
     parser.add_argument('--mode', type=str, required=True, 
-                      choices=['transcribe', 'process', 'extract', 'plm', 'full', 'generate_data'],
+                      choices=['transcribe', 'process', 'extract', 'plm_train', 'plm_predict', 'full', 'generate_data'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -29,13 +29,13 @@ def parse_args():
                       help='Compute type for WhisperX')
     
     # LLM处理相关参数
-    parser.add_argument('--gpt_version', type=str, default='gpt-4',
+    parser.add_argument('--gpt_version', type=str, default=Settings.GPT_VERSION,
                       help='GPT model version')
-    parser.add_argument('--cut_off_th', type=int, default=50,
+    parser.add_argument('--cut_off_th', type=int, default=Settings.CUT_OFF_THRESHOLD,
                       help='Threshold for cut_off function')
-    parser.add_argument('--long_text_th', type=int, default=50,
+    parser.add_argument('--long_text_th', type=int, default=Settings.LONG_TEXT_THRESHOLD,
                       help='Threshold for count_long_text_ratio function')
-    parser.add_argument('--ratio_count', type=float, default=0.5,
+    parser.add_argument('--ratio_count', type=float, default=Settings.RATIO_COUNT,
                        help='Threshold for identifying long utterance ratio')
     
     # PLM相关参数
@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--plm_batch_size', type=int, default=Settings.PLM_BATCH_SIZE,
                       help='Batch size for transcription')
     
-    # 生成数据相关参数 TODO
+    # 生成数据相关参数
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
                       help='PLM prediction file name')
     
@@ -258,11 +258,41 @@ def run_extraction(args, trigger_path: str) -> str:
     result = get_extraction_result(args, trigger_path)
     return save_extraction_result(result, trigger_path)
 
-def run_plm_processing(args, ts_path: str) -> str:
-    """Run PLM processing"""
+def run_plm_training(args) -> None:
+    """Run PLM training from scratch"""
     from pipeline.PLM.finetuned_one_val_out import main as plm_main
-    plm_main(args)  # 直接运行PLM的main函数
-    return ts_path  # 返回原始ts_path，因为PLM的结果会保存在配置的路径中
+    plm_main(args)  # 直接运行PLM的main函数进行训练
+
+def run_plm_prediction(args, ts_path: str) -> str:
+    """Run PLM prediction using trained model"""
+    from pipeline.PLM.finetuned_one_val_out import PLMProcessor
+    
+    # 创建PLM处理器实例
+    processor = PLMProcessor(
+        model_name=args.plm_model_name,
+        device=args.device,
+        seed=args.seed
+    )
+    
+    # 加载已训练的模型
+    processor.load_trained_model()
+    
+    # 如果有转录文件，进行预测
+    if ts_path:
+        with open(ts_path) as f:
+            transcript_data = json.load(f)
+        
+        # 处理转录数据
+        result = processor.process_transcript(transcript_data)
+        
+        # 保存结果
+        plm_path = os.path.splitext(ts_path)[0] + "_plm.json"
+        with open(plm_path, "w") as f:
+            json.dump(result, f, indent=2)
+        
+        return plm_path
+    
+    return None
 
 def run_generate_data(args) -> None:
     """Run data generation process"""
@@ -292,8 +322,13 @@ def main():
         trigger_path = run_llm_processing(args, args.ts_path)
         run_extraction(args, trigger_path)
     
-    elif args.mode == "plm":
-        run_plm_processing(args, None)  # ts_path在这里不需要
+    elif args.mode == "plm_train":
+        run_plm_training(args)
+    
+    elif args.mode == "plm_predict":
+        if not args.ts_path:
+            raise ValueError("ts_path is required for plm_predict mode")
+        run_plm_prediction(args, args.ts_path)
     
     elif args.mode == "generate_data":
         run_generate_data(args)
@@ -304,7 +339,7 @@ def main():
         ts_path = run_transcribe(args)
         trigger_path = run_llm_processing(args, ts_path)
         run_extraction(args, trigger_path)
-        run_plm_processing(args, None)  # ts_path在这里不需要
+        run_plm_training(args)  # 训练PLM模型
 
 if __name__ == "__main__":
     main() 
