@@ -16,31 +16,43 @@ import argparse
 from typing import Dict, List, Any, Tuple
 from config import Paths, Settings
 
-def load_data(city: str, data_dir: str) -> Tuple[Dict[str, Any], int, int]:
+def load_data(train_file: str, test_file: str, val_file: str = None) -> Tuple[Dict[str, Any], int, int]:
     """
     加载训练、验证和测试数据
     
     Args:
-        city: 城市名称
-        data_dir: 数据目录
+        train_file: 训练数据文件路径
+        test_file: 测试数据文件路径
+        val_file: 验证数据文件路径（可选）
         
     Returns:
         Tuple[Dict[str, Any], int, int]: 合并后的数据字典，训练集大小，验证集大小
     """
-    with open(os.path.join(data_dir, f"raw_train/{city}_train.json")) as f:
+    with open(train_file) as f:
         train = json.load(f)
-    with open(os.path.join(data_dir, f"raw_val/{city}_val.json")) as f:
-        val = json.load(f)
-    with open(os.path.join(data_dir, f"raw_test/{city}_test.json")) as f:
+    with open(test_file) as f:
         test = json.load(f)
+
+    # 检查验证集文件是否存在
+    val = None
+    if val_file and os.path.exists(val_file):
+        with open(val_file) as f:
+            val = json.load(f)
 
     truth = {}
     for key in train:
         truth[key] = train[key]
     train_limit = len(train.keys())
-    for key in val:
-        truth[key] = val[key]
-    test_limit = train_limit + len(val.keys())
+    
+    # 如果有验证集，添加到truth中
+    if val is not None:
+        for key in val:
+            truth[key] = val[key]
+        test_limit = train_limit + len(val.keys())
+    else:
+        # 如果没有验证集，test_limit等于train_limit
+        test_limit = train_limit
+        
     for key in test:
         truth[key] = test[key]
         
@@ -100,17 +112,19 @@ def process_section_types(truth: Dict[str, Any], current_dir: str) -> None:
             if isin:
                 truth[j][i]["section_type_gpt"] = "public_comment"
 
-def generate_processed_data(city: str, 
-                          data_dir: str,
-                          output_dir: str,
+def generate_processed_data(train_file: str,
+                          test_file: str,
+                          val_file: str = None,
+                          output_dir: str = None,
                           plm_file_name: str = "AA_pred_LOO_roberta.json",
                           seed: int = 42) -> None:
     """
     生成处理后的数据
     
     Args:
-        city: 城市名称
-        data_dir: 数据目录
+        train_file: 训练数据文件路径
+        test_file: 测试数据文件路径
+        val_file: 验证数据文件路径（可选）
         output_dir: 输出目录
         plm_file_name: PLM预测文件名
         seed: 随机种子
@@ -123,7 +137,7 @@ def generate_processed_data(city: str,
     current_dir = os.path.dirname(os.path.realpath(__file__))
     
     # 加载数据
-    truth, train_limit, test_limit = load_data(city, data_dir)
+    truth, train_limit, test_limit = load_data(train_file, test_file, val_file)
     
     # 处理部分类型
     process_section_types(truth, current_dir)
@@ -139,9 +153,9 @@ def generate_processed_data(city: str,
         os.makedirs(subdir_path)
         
     # 获取ID映射
-    i2t, t2i = assign_comment_index(truth)
-    rename_speaker(truth)
-    i2m, m2i = assign_meeting_id(truth)
+    i2t, t2i = assign_comment_index(truth, start_index=10000)
+    rename_speaker(truth, start_index=10000)
+    i2m, m2i = assign_meeting_id(truth, start_index=10000)
     info2t, t2info = assign_info(truth)
         
     # 保存映射
@@ -156,8 +170,14 @@ def generate_processed_data(city: str,
             
     # 分割数据集
     training_set = data[:train_limit]
-    test_set = data[train_limit: test_limit]
-    testv_set = data[test_limit:]
+    if test_limit > train_limit:
+        # 有验证集的情况
+        test_set = data[train_limit: test_limit]
+        testv_set = data[test_limit:]
+    else:
+        # 没有验证集的情况，test_set为空，testv_set包含所有测试数据
+        test_set = []
+        testv_set = data[train_limit:]
     
     # 处理数据
     training_set = sum(training_set, [])
@@ -171,6 +191,183 @@ def generate_processed_data(city: str,
     # 运行数据处理
     run_through(training_set, test_set, testv_set, output=output_dir, plm_path=plm_path)
 
+def process_test_set_only(test_file: str,
+                         output_dir: str = None,
+                         plm_file_name: str = "AA_pred_LOO_roberta.json",
+                         vocab_path: str = None,
+                         seed: int = 42) -> None:
+    """
+    只处理测试集数据
+    
+    Args:
+        test_file: 测试数据文件路径
+        output_dir: 输出目录
+        plm_file_name: PLM预测文件名
+        vocab_path: 现有词汇表文件路径
+        seed: 随机种子
+    """
+    # 设置随机种子
+    random.seed(seed)
+    np.random.seed(seed)
+    
+    # 获取当前目录
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    
+    # 加载测试数据
+    with open(test_file) as f:
+        test_data = json.load(f)
+    
+    # 处理文本格式
+    for key in test_data:
+        for m in range(len(test_data[key])):
+            test_data[key][m]["text"] = str(test_data[key][m]["text"])
+    
+    # 准备数据
+    data = [test_data[i] for i in test_data]
+    testv_set = sum(data, [])
+    
+    # 创建输出目录
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    subdir_path = os.path.join(output_dir, "mapping")
+    if not os.path.exists(subdir_path):
+        os.makedirs(subdir_path)
+        
+    # 获取ID映射
+    i2t, t2i = assign_comment_index(test_data, start_index=10000)
+    rename_speaker(test_data, start_index=10000)
+    i2m, m2i = assign_meeting_id(test_data, start_index=10000)
+    info2t, t2info = assign_info(test_data)
+        
+    # 保存映射
+    with open(os.path.join(subdir_path, "all_id_mapping.json"), "w") as f:
+        json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
+    
+    # 创建test子目录
+    test_subdir_path = os.path.join(output_dir, "test")
+    if not os.path.exists(test_subdir_path):
+        os.makedirs(test_subdir_path)
+    
+    # 设置PLM文件路径
+    plm_location = os.path.join(current_dir, Paths.PLM_DIR)
+    plm_path = os.path.join(plm_location, plm_file_name)
+    
+    # 运行测试集处理
+    run_test_set_only(testv_set, output=output_dir, plm_path=plm_path, vocab_path=vocab_path)
+
+def run_test_set_only(testv_list, output="../data/public_comments", plm_path=None):
+    """
+    只运行测试集数据处理
+    
+    Args:
+        testv_list: 测试数据列表
+        output: 输出目录
+        plm_path: PLM预测文件路径
+    """
+
+    hearing_signal = Settings.HEARING_SIGNALS
+    comment_signal = Settings.COMMENT_SIGNALS
+    next_signal = Settings.NEXT_SIGNALS
+    name_signal = Settings.NAME_SIGNALS
+    
+    testv_commenttype = []
+    testv_commenttype_tar = []
+    testv_llm_commenttype = []
+    testv_db_commenttype = []
+    
+    testv_speaker_type_dict = {}
+    testv_speaker_type = []
+    testv_speaker_type_tar = []
+    
+    testv_speaker_long_dict = {}
+    testv_speaker_long = []
+    testv_speaker_count_dict = {}
+    spoken_testv = []
+    longUtter_testv = []
+    
+    testv_section_type_gpt = []
+    testv_section_type = []
+    testv_section_type_tar = []
+    testv_precede = []
+    
+    testv_meeting_now = ""
+    testv_first = []
+    
+    testv_hearing_phrase = []
+    testv_comment_phrase = []
+    testv_next_phrase = []
+    testv_name_phrase = []
+    
+    # 加载PLM预测结果
+    with open(plm_path) as f:
+        plm_pred = json.load(f)
+    
+    for ind, example in enumerate(testv_list):
+        spoken_testv.append(make_spoken(example))
+        testv_commenttype += make_commenttype(example)
+        testv_commenttype_tar += make_commenttype_tar(example)
+        testv_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["pred"]))
+        
+        testv_section_type_gpt.extend(make_section_type_gpt(example))
+        testv_section_type.extend(make_section_type(example))
+        testv_section_type_tar.extend(make_section_type_tar(example))
+        
+        testv_speaker_type_dict = _make_speakertype(example, testv_speaker_type_dict)
+        longU, testv_speaker_long_dict = make_longUtter(example, testv_speaker_long_dict)
+        longUtter_testv.append(longU)
+        
+        precede = make_precede(ind, testv_list)
+        if precede:
+            testv_precede.append(precede)
+        first, testv_meeting_now = make_first(testv_meeting_now, example)
+        if first:
+            testv_first.append(first)
+           
+        testv_speaker_count_dict = get_speak_count(example, testv_speaker_count_dict)
+        
+        testv_hearing_phrase.append(make_phrase(example, hearing_signal))
+        testv_comment_phrase.append(make_phrase(example, comment_signal))
+        testv_next_phrase.append(make_phrase(example, next_signal))
+        testv_name_phrase.append(make_phrase(example, name_signal))
+    
+    testv_speaker_long = make_long_utter_rate(testv_speaker_long_dict)
+    
+    testv_speaker_type = make_speakertype(testv_speaker_type_dict)
+    for i in range(0, len(testv_speaker_type), 2):
+        testv_speaker_type_tar += make_speaker_type_tar(testv_speaker_type[i])
+    
+    testv_speaker_low_count = make_low_count(testv_speaker_count_dict)
+    testv_speaker_high_count = make_high_count(testv_speaker_count_dict)
+    
+    # 只写入测试集文件
+    write_a_file(spoken_testv, output + "/test/spoken.txt")
+    # write_a_file(longUtter_testv, output + "/test/longUtter.txt")
+    write_a_file(testv_speaker_long, output + "/test/speaker_long.txt")
+    write_a_file(testv_speaker_type, output + "/test/speaker_type_truth.txt")
+    write_a_file(testv_commenttype, output + "/test/commenttype_truth.txt")
+    write_a_file(testv_llm_commenttype, output + "/test/commenttype_llm.txt")
+    write_a_file(testv_speaker_type_tar, output + "/test/speaker_type_target.txt")
+    write_a_file(testv_commenttype_tar, output + "/test/commenttype_target.txt")
+    
+    write_a_file(testv_section_type_gpt, output + "/test/sectiontype_obs.txt")
+    write_a_file(testv_section_type, output + "/test/sectiontype_truth.txt")
+    write_a_file(testv_section_type_tar, output + "/test/sectiontype_target.txt")
+    
+    write_a_file(testv_precede, output + "/test/precedes.txt")
+    write_a_file(testv_first, output + "/test/first.txt")
+    
+    write_a_file(testv_speaker_low_count, output + "/test/speaker_count_low.txt")
+    write_a_file(testv_speaker_high_count, output + "/test/speaker_count_high.txt")
+    
+    write_a_file(testv_hearing_phrase, output + "/test/hearing_phrase.txt")
+    write_a_file(testv_comment_phrase, output + "/test/comment_phrase.txt")
+    # write_a_file(testv_next_phrase, output + "/test/next_phrase.txt")
+    write_a_file(testv_name_phrase, output + "/test/name_phrase.txt")
+    
+    # 保存词汇表
+    with open(output + "/test/vocab.json", "w") as f:
+        json.dump(vocab, f)
+
 def run_through(train_list, test_list, testv_list, output="../data/public_comments", plm_path=None):
     """
     运行数据处理
@@ -182,7 +379,8 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         output: 输出目录
         plm_path: PLM预测文件路径
     """
-    contains_train, contains_test, contains_testv, vocab = make_contain(train_list, test_list, testv_list)
+    # 为了保持词汇表一致性，我们仍然需要构建词汇表
+    # contains_train, contains_test, contains_testv, vocab = make_contain(train_list, test_list, testv_list)
     
     hearing_signal = Settings.HEARING_SIGNALS
     comment_signal = Settings.COMMENT_SIGNALS
@@ -289,7 +487,13 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         spoken_test.append(make_spoken(example))
         test_commenttype += make_commenttype(example)
         test_commenttype_tar += make_commenttype_tar(example)
-        test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["val_pred"]))
+        # 根据是否有验证集选择不同的预测结果
+        if "val_pred" in plm_pred:
+            test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["val_pred"]))
+        else:
+            # 如果没有验证集，test_list应该是空的，这里不应该执行
+            # 但为了安全起见，仍然使用train_pred
+            test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["train_pred"]))
         
         test_section_type_gpt.extend(make_section_type_gpt(example))
         test_section_type.extend(make_section_type(example))
@@ -313,15 +517,21 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         test_next_phrase.append(make_phrase(example, next_signal))
         test_name_phrase.append(make_phrase(example, name_signal))
     
-    test_speaker_long = make_long_utter_rate(test_speaker_long_dict)
-    
-    test_speaker_type = make_speakertype(test_speaker_type_dict)
-    for i in range(0, len(test_speaker_type), 2):
-        test_speaker_type_tar += make_speaker_type_tar(test_speaker_type[i])
-    
-    test_speaker_low_count = make_low_count(test_speaker_count_dict)
-    test_speaker_high_count = make_high_count(test_speaker_count_dict)
-    
+    # 只有当test_list不为空时才处理test_speaker相关数据
+    if test_list:
+        test_speaker_long = make_long_utter_rate(test_speaker_long_dict)
+        test_speaker_type = make_speakertype(test_speaker_type_dict)
+        for i in range(0, len(test_speaker_type), 2):
+            test_speaker_type_tar += make_speaker_type_tar(test_speaker_type[i])
+        test_speaker_low_count = make_low_count(test_speaker_count_dict)
+        test_speaker_high_count = make_high_count(test_speaker_count_dict)
+    else:
+        # 如果test_list为空，创建空的列表
+        test_speaker_long = []
+        test_speaker_type = []
+        test_speaker_type_tar = []
+        test_speaker_low_count = []
+        test_speaker_high_count = []
     
     testv_commenttype = []
     testv_commenttype_tar = []
@@ -388,9 +598,8 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     testv_speaker_low_count = make_low_count(testv_speaker_count_dict)
     testv_speaker_high_count = make_high_count(testv_speaker_count_dict)
     write_a_file(spoken_train, output + "/train/spoken.txt")
-    write_a_file(longUtter_train, output + "/train/longUtter.txt")
+    # write_a_file(longUtter_train, output + "/train/longUtter.txt")
     write_a_file(train_speaker_long, output + "/train/speaker_long.txt")
-    write_a_file(contains_train, output + "/train/contains.txt")
     write_a_file(train_speaker_type, output + "/train/speaker_type_truth.txt")
     write_a_file(train_commenttype, output + "/train/commenttype_truth.txt")
     write_a_file(train_llm_commenttype, output + "/train/commenttype_llm.txt")
@@ -409,16 +618,15 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     
     write_a_file(train_hearing_phrase, output + "/train/hearing_phrase.txt")
     write_a_file(train_comment_phrase, output + "/train/comment_phrase.txt")
-    write_a_file(train_next_phrase, output + "/train/next_phrase.txt")
+    # write_a_file(train_next_phrase, output + "/train/next_phrase.txt")
     write_a_file(train_name_phrase, output + "/train/name_phrase.txt")
     
-    with open(output + "/train/vocab.json", "w") as f:
-        json.dump(vocab, f)
+    # with open(output + "/train/vocab.json", "w") as f:
+    #     json.dump(vocab, f)
     #
     write_a_file(spoken_test,output + "/eval/spoken.txt")
-    write_a_file(longUtter_test,output + "/eval/longUtter.txt")
+    # write_a_file(longUtter_test,output + "/eval/longUtter.txt")
     write_a_file(test_speaker_long,output + "/eval/speaker_long.txt")
-    write_a_file(contains_test,output + "/eval/contains.txt")
     write_a_file(test_speaker_type,output + "/eval/speaker_type_truth.txt")
     write_a_file(test_commenttype,output + "/eval/commenttype_truth.txt")
     write_a_file(test_llm_commenttype, output + "/eval/commenttype_llm.txt")
@@ -444,7 +652,6 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     write_a_file(spoken_testv,output + "/test/spoken.txt")
     write_a_file(longUtter_testv,output + "/test/longUtter.txt")
     write_a_file(testv_speaker_long,output + "/test/speaker_long.txt")
-    write_a_file(contains_testv,output + "/test/contains.txt")
     write_a_file(testv_speaker_type,output + "/test/speaker_type_truth.txt")
     write_a_file(testv_commenttype,output + "/test/commenttype_truth.txt")
     write_a_file(testv_llm_commenttype, output + "/test/commenttype_llm.txt")
@@ -463,7 +670,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     
     write_a_file(testv_hearing_phrase, output + "/test/hearing_phrase.txt")
     write_a_file(testv_comment_phrase, output + "/test/comment_phrase.txt")
-    write_a_file(testv_next_phrase, output + "/test/next_phrase.txt")
+    # write_a_file(testv_next_phrase, output + "/test/next_phrase.txt")
     write_a_file(testv_name_phrase, output + "/test/name_phrase.txt")
 
 def make_longUtter(example, speaker_long_dict, threshold=50):
@@ -911,17 +1118,18 @@ def write_a_file(alist, filename):
         for l in alist:
             f.write(l)
 
-def assign_comment_index(truth):
+def assign_comment_index(truth, start_index=0):
     """
     为评论分配索引
     
     Args:
         truth: 数据字典
+        start_index: 起始索引
         
     Returns:
         Tuple[Dict, Dict]: 索引到文本和文本到索引的映射
     """
-    k = 0
+    k = start_index
     ind_to_text, text_to_ind = {}, {}
     for i in truth:
         for j in range(len(truth[i])):
@@ -931,30 +1139,32 @@ def assign_comment_index(truth):
             k += 1
     return ind_to_text, text_to_ind
 
-def rename_speaker(truth):
+def rename_speaker(truth, start_index=0):
     """
     重命名说话者
     
     Args:
         truth: 数据字典
+        start_index: 起始索引
     """
-    k = 0
+    k = start_index
     for i in truth:
         for j in range(len(truth[i])):
             truth[i][j]["speaker"] += "_" + str(k)
         k += 1
 
-def assign_meeting_id(truth):
+def assign_meeting_id(truth, start_index=0):
     """
     为会议分配ID
     
     Args:
         truth: 数据字典
+        start_index: 起始索引
         
     Returns:
         Tuple[Dict, Dict]: 索引到会议和会议到索引的映射
     """
-    k = 0
+    k = start_index
     ind_to_m, m_to_ind = {}, {}
     for i in truth:
         ind_to_m[k] = i

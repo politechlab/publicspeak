@@ -10,7 +10,6 @@ from pipeline.public_speech_extractor.extractor import clean_and_find_manager, e
 import json
 from config import Paths, Settings
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Public Speech Processing Pipeline')
     
@@ -42,8 +41,6 @@ def parse_args():
     # PLM相关参数
     parser.add_argument('--plm_model_name', type=str, default=Settings.MODEL_NAME,
                       help='PLM model name')
-    parser.add_argument('--city', type=str, default=Settings.CITY,
-                      help='City for PLM training')
     parser.add_argument('--lr', type=float, default=Settings.LEARNING_RATE,
                       help='Learning rate for PLM')
     parser.add_argument('--epoch', type=int, default=Settings.EPOCHS,
@@ -55,9 +52,16 @@ def parse_args():
     parser.add_argument('--save_plm_model', type=bool, default=Settings.SAVE_PLM_MODEL,
                       help='Save PLM model or not.')
     
-    # 生成数据相关参数 TODO
+    # 生成数据相关参数
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
                       help='PLM prediction file name')
+    parser.add_argument('--data_mode', type=str, choices=['full', 'test_only'], default='full',
+                      help='Data processing mode: full or test_only')
+    parser.add_argument('--train_file', type=str, help='Training data file path (required for full mode)')
+    parser.add_argument('--test_file', type=str, required=True, help='Test data file path')
+    parser.add_argument('--val_file', type=str, help='Validation data file path (optional, for full mode)')
+    parser.add_argument('--vocab_path', type=str, default=None,
+                      help='Existing vocabulary file path (only for test_only mode)')
     
     # 输出相关参数
     parser.add_argument('--output_dir', type=str, default='output',
@@ -317,19 +321,56 @@ def run_plm_test(args, test_file: str) -> str:
 
 def run_generate_data(args) -> None:
     """Run data generation process"""
-    from pipeline.generate_processed_data.generate_processed_data import generate_processed_data
+    from pipeline.generate_processed_data.generate_processed_data import generate_processed_data, process_test_set_only
     
-    # 设置数据目录
-    data_dir = Paths.DATA_DIR
-    
-    # 调用generate_processed_data函数
-    generate_processed_data(
-        city=args.city,
-        data_dir=data_dir,
-        output_dir=os.path.join(args.psl_data_dir, args.city),
-        plm_file_name=args.plm_file_name,
-        seed=args.seed
-    )
+    if args.data_mode == "test_only":
+        # 测试集模式只需要test_file
+        if not args.test_file:
+            raise ValueError("test_file is required for test_only mode")
+        
+        test_file = args.test_file
+        print(f"Using test file: {test_file}")
+        
+        # 设置输出目录
+        output_dir = args.output_dir
+        
+        print(f"开始仅处理测试集...")
+        # 调用测试集处理函数
+        process_test_set_only(
+            test_file=test_file,
+            output_dir=output_dir,
+            plm_file_name=args.plm_file_name,
+            vocab_path=args.vocab_path,
+            seed=args.seed
+        )
+        print("测试集处理完成！")
+        
+    else:
+        # 完整模式需要train_file和test_file
+        if not args.train_file or not args.test_file:
+            raise ValueError("train_file and test_file are required for full data generation")
+        
+        # 使用直接文件路径
+        train_file = args.train_file
+        test_file = args.test_file
+        val_file = args.val_file
+        
+        print(f"Using direct file paths")
+        
+        # 设置输出目录
+        output_dir = args.output_dir
+        
+        print(f"开始完整数据处理...")
+        # 调用完整数据处理函数
+        generate_processed_data(
+            train_file=train_file,
+            test_file=test_file,
+            val_file=val_file,
+            output_dir=output_dir,
+            plm_file_name=args.plm_file_name,
+            seed=args.seed
+        )
+        print("完整数据处理完成！")
 
 def main():
     """Main function to run the pipeline"""
