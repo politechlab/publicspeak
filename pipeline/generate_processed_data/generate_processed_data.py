@@ -14,6 +14,7 @@ from tqdm import tqdm
 import sys
 import argparse
 from typing import Dict, List, Any, Tuple
+from config import Paths, Settings
 
 def load_data(city: str, data_dir: str) -> Tuple[Dict[str, Any], int, int]:
     """
@@ -164,7 +165,7 @@ def generate_processed_data(city: str,
     testv_set = sum(testv_set, [])
     
     # 设置PLM文件路径
-    plm_location = os.path.join(current_dir, "../../data/PLM_indicators")
+    plm_location = os.path.join(current_dir, Paths.PLM_DIR)
     plm_path = os.path.join(plm_location, plm_file_name)
     
     # 运行数据处理
@@ -183,10 +184,10 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     """
     contains_train, contains_test, contains_testv, vocab = make_contain(train_list, test_list, testv_list)
     
-    hearing_signal = ["open up the public hearing","public hearing"]
-    comment_signal = ["public comment"]
-    next_signal = ["next speaker"]
-    name_signal = ["my name is"]
+    hearing_signal = Settings.HEARING_SIGNALS
+    comment_signal = Settings.COMMENT_SIGNALS
+    next_signal = Settings.NEXT_SIGNALS
+    name_signal = Settings.NAME_SIGNALS
     
     train_commenttype = []
     train_commenttype_tar = []

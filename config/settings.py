@@ -6,6 +6,7 @@ class Settings:
     LEARNING_RATE = 2e-5
     EPOCHS = 7
     SEED = 42
+    SAVE_PLM_MODEL = True
     
     # video processing settings
     VIDEO_MODE = "full"

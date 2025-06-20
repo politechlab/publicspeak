@@ -416,14 +416,15 @@ def main(args):
         json.dump(result, f)
     
     # 保存模型
-    model_output_dir = Paths.PLM_DIR / "models"
-    model_output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 保存模型和tokenizer
-    processor.model.save_pretrained(str(model_output_dir))
-    processor.tokenizer.save_pretrained(str(model_output_dir))
-    
-    print(f"Model saved to: {model_output_dir}")
+    if args.save_plm_model:
+        model_output_dir = Paths.PLM_DIR / "models"
+        model_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 保存模型和tokenizer
+        processor.model.save_pretrained(str(model_output_dir))
+        processor.tokenizer.save_pretrained(str(model_output_dir))
+
+        print(f"Model saved to: {model_output_dir}")
 
 
 if __name__ == "__main__":

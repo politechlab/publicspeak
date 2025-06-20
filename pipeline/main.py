@@ -16,7 +16,7 @@ def parse_args():
     
     # 转写相关参数
     parser.add_argument('--mode', type=str, required=True, 
-                      choices=['transcribe', 'process', 'extract', 'plm', 'full', 'generate_data'],
+                      choices=['transcribe', 'process', 'extract', 'plm', 'plm_predict', 'full', 'generate_data'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -52,6 +52,8 @@ def parse_args():
                       help='Random seed for PLM')
     parser.add_argument('--plm_batch_size', type=int, default=Settings.PLM_BATCH_SIZE,
                       help='Batch size for transcription')
+    parser.add_argument('--save_plm_model', type=bool, default=Settings.SAVE_PLM_MODEL,
+                      help='Save PLM model or not.')
     
     # 生成数据相关参数 TODO
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
