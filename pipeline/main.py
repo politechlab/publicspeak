@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from collections import defaultdict
 from pipeline.transcribe.transcribe import use_whisperx, save_transcription_result
+from pipeline.PLM.finetuned_one_val_out import PLMProcessor
 from pipeline.llm_processor.llm_processor import process_with_llm
 from pipeline.public_speech_extractor.extractor import clean_and_find_manager, extract_public, save_extraction_result
 import json
@@ -263,11 +264,8 @@ def run_plm_training(args) -> None:
     from pipeline.PLM.finetuned_one_val_out import main as plm_main
     plm_main(args)  # 直接运行PLM的main函数进行训练
 
-def run_plm_prediction(args, ts_path: str) -> str:
+def run_plm_prediction(args) -> str:
     """Run PLM prediction using trained model on transcript"""
-    from pipeline.PLM.finetuned_one_val_out import PLMProcessor
-    from pipeline.public_speech_extractor.extractor import clean_and_find_manager
-    from config import Paths, Settings
     
     # 创建PLM处理器实例
     processor = PLMProcessor(
@@ -280,7 +278,7 @@ def run_plm_prediction(args, ts_path: str) -> str:
     processor.load_trained_model()
     
     # 先经过clean_and_find_manager处理
-    manager, merged_data = clean_and_find_manager(ts_path)
+    manager, merged_data = clean_and_find_manager(args.ts_path)
     
     # merged_data已经是transcript格式，直接使用
     transcript_data = merged_data
@@ -354,7 +352,7 @@ def main():
     elif args.mode == "plm_predict":
         if not args.ts_path:
             raise ValueError("ts_path is required for plm_predict mode")
-        run_plm_prediction(args, args.ts_path)
+        run_plm_prediction(args)
     
     elif args.mode == "plm_test":
         if not args.ts_path:

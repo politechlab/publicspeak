@@ -257,9 +257,7 @@ class PLMProcessor:
         pred = np.argmax(predictions.predictions, axis=1).tolist()
         
         # 整理结果
-        result = [
-            'pred': pred
-        ]
+        result = pred
         
         return result
 
