@@ -16,7 +16,7 @@ def parse_args():
     
     # 转写相关参数
     parser.add_argument('--mode', type=str, required=True, 
-                      choices=['transcribe', 'process', 'extract', 'plm_train', 'plm_predict', 'plm_test', 'full', 'generate_data'],
+                      choices=['transcribe', 'process', 'extract', 'plm', 'full', 'generate_data'],
                       help='Pipeline mode')
     parser.add_argument('--audio_file', type=str, help='Input audio file path')
     parser.add_argument('--ts_path', type=str, help='Transcription file path')
@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument('--plm_batch_size', type=int, default=Settings.PLM_BATCH_SIZE,
                       help='Batch size for transcription')
     
-    # 生成数据相关参数
+    # 生成数据相关参数 TODO
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
                       help='PLM prediction file name')
     
@@ -259,11 +259,6 @@ def run_extraction(args, trigger_path: str) -> str:
     result = get_extraction_result(args, trigger_path)
     return save_extraction_result(result, trigger_path)
 
-def run_plm_training(args) -> None:
-    """Run PLM training from scratch"""
-    from pipeline.PLM.finetuned_one_val_out import main as plm_main
-    plm_main(args)  # 直接运行PLM的main函数进行训练
-
 def run_plm_prediction(args) -> str:
     """Run PLM prediction using trained model on transcript"""
     
@@ -287,7 +282,7 @@ def run_plm_prediction(args) -> str:
     result = processor.process_transcript(transcript_data)
     
     # 结合文件名和PLM_DIR路径
-    file_name = os.path.splitext(os.path.basename(ts_path))[0] + "_plm.json"
+    file_name = os.path.splitext(os.path.basename(args.ts_path))[0] + "_plm.json"
     output_file = Paths.PLM_DIR / file_name
     with open(output_file, "w") as f:
         json.dump(result, f, indent=2)
@@ -346,8 +341,11 @@ def main():
         trigger_path = run_llm_processing(args, args.ts_path)
         run_extraction(args, trigger_path)
     
-    elif args.mode == "plm_train":
-        run_plm_training(args)
+    elif args.mode == "plm":
+        from pipeline.PLM.finetuned_one_val_out import main as plm_main
+        
+        # 运行训练（包含保存模型）
+        plm_main(args)
     
     elif args.mode == "plm_predict":
         if not args.ts_path:
@@ -368,7 +366,10 @@ def main():
         ts_path = run_transcribe(args)
         trigger_path = run_llm_processing(args, ts_path)
         run_extraction(args, trigger_path)
-        run_plm_training(args)  # 训练PLM模型
+        
+        # 训练PLM模型（包含保存模型）
+        from pipeline.PLM.finetuned_one_val_out import main as plm_main
+        plm_main(args)
 
 if __name__ == "__main__":
     main() 

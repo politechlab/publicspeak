@@ -414,6 +414,16 @@ def main(args):
     output_file = Paths.PLM_DIR / Settings.PLM_PRED_FILE.format(city=args.city)
     with open(output_file, "w") as f:
         json.dump(result, f)
+    
+    # 保存模型
+    model_output_dir = Paths.PLM_DIR / "models"
+    model_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 保存模型和tokenizer
+    processor.model.save_pretrained(str(model_output_dir))
+    processor.tokenizer.save_pretrained(str(model_output_dir))
+    
+    print(f"Model saved to: {model_output_dir}")
 
 
 if __name__ == "__main__":
