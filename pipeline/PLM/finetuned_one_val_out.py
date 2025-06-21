@@ -338,8 +338,9 @@ def main(args):
     )
     
     # 加载数据
-    train_file = Paths.RAW_TRAIN_DIR / Settings.TRAIN_FILE.format(city=args.city)
-    test_file = Paths.RAW_TEST_DIR / Settings.TEST_FILE.format(city=args.city)
+    
+    train_file = args.raw_train_dir / args.train_file
+    test_file = args.raw_test_dir / args.test_file
     
     with open(train_file) as f:
         train = json.load(f)
@@ -348,9 +349,9 @@ def main(args):
         
     # 检查验证集文件是否存在
     val = None
-    if hasattr(Settings, 'VAL_FILE'):
-        val_file = Paths.RAW_DIR / Settings.VAL_FILE.format(city=args.city)
-        if val_file.exists():
+    if args.raw_eval_dir and args.eval_file:
+        val_file = args.raw_eval_dir / args.eval_file
+        if os.path.exists(val_file):
             with open(val_file) as f:
                 val = json.load(f)
     
@@ -411,7 +412,7 @@ def main(args):
         "metrics": metrics
     }
     
-    output_file = Paths.PLM_DIR / Settings.PLM_PRED_FILE.format(city=args.city)
+    output_file = Paths.PLM_DIR / Settings.PLM_PRED_FILE
     with open(output_file, "w") as f:
         json.dump(result, f)
     

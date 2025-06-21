@@ -8,6 +8,7 @@ class Paths:
     # raw data path
     RAW_DIR = DATA_DIR / "raw"
     RAW_TRAIN_DIR = DATA_DIR / "raw_train"
+    RAW_EVAL_DIR = DATA_DIR / "raw_val"
     RAW_TEST_DIR = DATA_DIR / "raw_test"
     AUDIO_DIR = RAW_DIR / "audio"
     VIDEO_DIR = RAW_DIR / "video"
@@ -23,7 +24,7 @@ class Paths:
     # processed data path
     PROCESSED_DIR = DATA_DIR / "processed"
     LLM_DIR = PROCESSED_DIR / "LLM_indicators"
-    PLM_DIR = PROCESSED_DIR / "PLM_indicators"
+    PLM_DIR = DATA_DIR / "PLM_indicators"
     PUBLIC_COMMENTS_DIR = PROCESSED_DIR / "public_comments"
     
     # generated data path

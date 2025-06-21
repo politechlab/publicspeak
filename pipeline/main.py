@@ -52,14 +52,26 @@ def parse_args():
     parser.add_argument('--save_plm_model', type=bool, default=Settings.SAVE_PLM_MODEL,
                       help='Save PLM model or not.')
     
+    # File names and directories
+    parser.add_argument('--raw_train_dir', type=str, default=Paths.RAW_TRAIN_DIR,
+                      help='Raw training data file path')
+    parser.add_argument('--raw_eval_dir', type=str, default=Paths.RAW_EVAL_DIR,
+                      help='Raw evaluating data file path')
+    parser.add_argument('--raw_test_dir', type=str, default=Paths.RAW_TEST_DIR,
+                      help='Raw testing data file path')
+    
+    parser.add_argument('--train_file', type=str, default=Settings.TRAIN_FILE,
+                      help='Training data file name')
+    parser.add_argument('--eval_file', type=str, default=Settings.VAL_FILE,
+                      help='Evaluating data file name')
+    parser.add_argument('--test_file', type=str, default=Settings.TEST_FILE,
+                      help='Testing data file name')
+    
     # 生成数据相关参数
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
                       help='PLM prediction file name')
     parser.add_argument('--data_mode', type=str, choices=['full', 'test_only'], default='full',
                       help='Data processing mode: full or test_only')
-    parser.add_argument('--train_file', type=str, help='Training data file path (required for full mode)')
-    parser.add_argument('--test_file', type=str, required=True, help='Test data file path')
-    parser.add_argument('--val_file', type=str, help='Validation data file path (optional, for full mode)')
     parser.add_argument('--vocab_path', type=str, default=None,
                       help='Existing vocabulary file path (only for test_only mode)')
     
@@ -328,7 +340,7 @@ def run_generate_data(args) -> None:
         if not args.test_file:
             raise ValueError("test_file is required for test_only mode")
         
-        test_file = args.test_file
+        test_file = args.raw_test_dir / args.test_file
         print(f"Using test file: {test_file}")
         
         # 设置输出目录
@@ -351,9 +363,9 @@ def run_generate_data(args) -> None:
             raise ValueError("train_file and test_file are required for full data generation")
         
         # 使用直接文件路径
-        train_file = args.train_file
-        test_file = args.test_file
-        val_file = args.val_file
+        train_file = args.raw_train_dir / args.train_file
+        test_file = args.raw_test_dir / args.test_file
+        val_file = args.raw_eval_dir / args.eval_file
         
         print(f"Using direct file paths")
         

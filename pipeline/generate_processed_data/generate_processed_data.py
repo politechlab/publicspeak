@@ -32,7 +32,7 @@ def load_data(train_file: str, test_file: str, val_file: str = None) -> Tuple[Di
         train = json.load(f)
     with open(test_file) as f:
         test = json.load(f)
-
+    
     # 检查验证集文件是否存在
     val = None
     if val_file and os.path.exists(val_file):
@@ -71,6 +71,7 @@ def process_section_types(truth: Dict[str, Any], current_dir: str) -> None:
         truth: 数据字典
         current_dir: 当前目录
     """
+    # TODO
     for j in truth:
         with open(os.path.join(current_dir, f"../../data/LLM_indicators/{j}_trigger_general.json")) as f:
             triggers = json.load(f)
@@ -138,7 +139,6 @@ def generate_processed_data(train_file: str,
     
     # 加载数据
     truth, train_limit, test_limit = load_data(train_file, test_file, val_file)
-    
     # 处理部分类型
     process_section_types(truth, current_dir)
     
@@ -153,9 +153,9 @@ def generate_processed_data(train_file: str,
         os.makedirs(subdir_path)
         
     # 获取ID映射
-    i2t, t2i = assign_comment_index(truth, start_index=10000)
-    rename_speaker(truth, start_index=10000)
-    i2m, m2i = assign_meeting_id(truth, start_index=10000)
+    i2t, t2i = assign_comment_index(truth)
+    rename_speaker(truth)
+    i2m, m2i = assign_meeting_id(truth)
     info2t, t2info = assign_info(truth)
         
     # 保存映射
@@ -169,6 +169,7 @@ def generate_processed_data(train_file: str,
             os.makedirs(subdir_path)
             
     # 分割数据集
+    print(len(data))
     training_set = data[:train_limit]
     if test_limit > train_limit:
         # 有验证集的情况
@@ -183,6 +184,7 @@ def generate_processed_data(train_file: str,
     training_set = sum(training_set, [])
     test_set = sum(test_set, [])
     testv_set = sum(testv_set, [])
+    print(len(training_set), len(test_set), len(testv_set))
     
     # 设置PLM文件路径
     plm_location = os.path.join(current_dir, Paths.PLM_DIR)
@@ -222,6 +224,7 @@ def process_test_set_only(test_file: str,
         for m in range(len(test_data[key])):
             test_data[key][m]["text"] = str(test_data[key][m]["text"])
     
+    process_section_types(test_data, current_dir)
     # 准备数据
     data = [test_data[i] for i in test_data]
     testv_set = sum(data, [])
@@ -240,7 +243,7 @@ def process_test_set_only(test_file: str,
     info2t, t2info = assign_info(test_data)
         
     # 保存映射
-    with open(os.path.join(subdir_path, "all_id_mapping.json"), "w") as f:
+    with open(os.path.join(subdir_path, "test_id_mapping.json"), "w") as f:
         json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
     
     # 创建test子目录
@@ -253,7 +256,7 @@ def process_test_set_only(test_file: str,
     plm_path = os.path.join(plm_location, plm_file_name)
     
     # 运行测试集处理
-    run_test_set_only(testv_set, output=output_dir, plm_path=plm_path, vocab_path=vocab_path)
+    run_test_set_only(testv_set, output=output_dir, plm_path=plm_path)
 
 def run_test_set_only(testv_list, output="../data/public_comments", plm_path=None):
     """
@@ -365,8 +368,8 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     write_a_file(testv_name_phrase, output + "/test/name_phrase.txt")
     
     # 保存词汇表
-    with open(output + "/test/vocab.json", "w") as f:
-        json.dump(vocab, f)
+    # with open(output + "/test/vocab.json", "w") as f:
+    #     json.dump(vocab, f)
 
 def run_through(train_list, test_list, testv_list, output="../data/public_comments", plm_path=None):
     """
@@ -650,7 +653,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     #write_a_file(spoken_obs,"public_comments/0/eval/spoken.txt")
 
     write_a_file(spoken_testv,output + "/test/spoken.txt")
-    write_a_file(longUtter_testv,output + "/test/longUtter.txt")
+    # write_a_file(longUtter_testv,output + "/test/longUtter.txt")
     write_a_file(testv_speaker_long,output + "/test/speaker_long.txt")
     write_a_file(testv_speaker_type,output + "/test/speaker_type_truth.txt")
     write_a_file(testv_commenttype,output + "/test/commenttype_truth.txt")
