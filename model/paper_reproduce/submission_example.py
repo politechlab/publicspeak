@@ -13,21 +13,12 @@ from pslpython.partition import Partition
 from pslpython.predicate import Predicate
 from pslpython.rule import Rule
 
-import argparse
-
-parser = argparse.ArgumentParser(description="Process some arguments.")
-parser.add_argument("--city", type=str, default="AA")
-parser.add_argument("--seed", type=int, default=42)
-args = parser.parse_args()
-city = args.city
-seed = args.seed
-
 def seed_everything(seed_value):
     random.seed(seed_value)
     np.random.seed(seed_value)
     os.environ['PYTHONHASHSEED'] = str(seed_value)
 
-seed_everything(seed)
+seed_everything(42)
 
 ADDITIONAL_PSL_OPTIONS = {
     'log4j.threshold': 'INFO'
@@ -40,25 +31,20 @@ ADDITIONAL_CLI_OPTIONS = [
 def main(city, output_directory):
    
     global THIS_DIR
-    global TRAIN_DIR
     global EVAL_DIR
 
     global MODEL_NAME
-    MODEL_NAME = "train_model"
+    MODEL_NAME = "test_model"
     
-    eval_directory = "processed_test_data"
-    train_directory = "generated_train_data"
-    
+    directory = "processed_test_data"
+
     THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
     #EVAL_DIR = os.path.join(THIS_DIR, directory, city)
-    TRAIN_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', train_directory, city, "train")
-    EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', eval_directory, city)
+    EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', directory, city)
     
-    weight_directory = "learnt_weight"
-    weight_directory = os.path.join(THIS_DIR, weight_directory)
-    
-    weight_file_loc = "init_weight_file.json"
+    weight_file_loc = "weight_file.json"
     weight_file_loc = os.path.join(THIS_DIR, weight_file_loc)
+    
     with open(weight_file_loc) as f:
         weight_file = json.load(f)
     
@@ -68,14 +54,8 @@ def main(city, output_directory):
     add_predicates(model)
 
     # Add Rules
-    add_rules(model, weight_file)
-    
-    # Model training to get the learnt weights
-    learn(model, os.path.join(THIS_DIR, 'temp_learn'))
+    add_rules(model, city, weight_file)
 
-    # Write down the learnt weights
-    write_weights(model, weight_directory, city)
-        
     # Model infers to get results
     results = infer(model, city, os.path.join(THIS_DIR, 'temp'))
 
@@ -83,14 +63,6 @@ def main(city, output_directory):
     write_results(results, model, output_directory, city)
     
     return True
-
-def write_weights(model, weight_directory, city):
-    weight_path = os.path.join(weight_directory, f'{city}_weights.txt')
-    os.makedirs(weight_directory, exist_ok = True)
-    with open(weight_path,'w') as f:
-        for rule in model.get_rules():
-            print('   ' + str(rule))
-            f.write('   ' + str(rule) + '\n')
 
 # Write results to a folder
 def write_results(results, model, output_directory, city):
@@ -150,7 +122,7 @@ def add_predicates(model):
 
 
 # Add rules and corresponding weights
-def add_rules(model, weight_file):
+def add_rules(model, city, weight_file):
     
   ######################  
         
@@ -207,7 +179,7 @@ def add_rules(model, weight_file):
     model.add_rule(Rule('Section(M, U,+d) = 1 .'))
     
     for rule in rules_list:
-        model.add_rule(Rule(str(weight_file[rule]) + ": " + rule))
+        model.add_rule(Rule(weight_file[city][rule] + ": " + rule))
 
 # Load data from files
 def add_data(model, train_type):
@@ -267,10 +239,6 @@ def add_data(model, train_type):
     path = os.path.join(DATA_DIR, 'sectiontype_truth.txt')
     model.get_predicate('Section').add_data_file(Partition.TRUTH, path)
     
-def learn(model, temp_dir):
-    add_data(model,'train')
-    model.learn(temp_dir = temp_dir,additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
-    
 def infer(model, city, temp_dir):
     add_data(model,'test')
     return model.infer(temp_dir = temp_dir, additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
@@ -303,7 +271,7 @@ def get_pred_list(city, output_directory):
 
 # Get label files for a city
 def get_truth_modified(city):
-    with open(EVAL_DIR + f"/commenttype_truth.txt") as f:        
+    with open(EVAL_DIR + f"/commenttype_truth.txt") as f:         
         truth = f.readlines()
     return truth
 
@@ -315,7 +283,7 @@ def get_truth_dict_modified(city):
         meet_id = x[0]
         ut_id = x[1]
         ct = x[2]
-        tv = x[3]        
+        tv = x[3]
         key = '{}-{}'.format(meet_id,ut_id)
         
         if key not in to_return:
@@ -359,11 +327,11 @@ def test(city, output_directory):
     print("=========================================================================")
     print(out)
     print("=========================================================================")
-
     return rs4, rs2
 
 if (__name__ == '__main__'):
-    #city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
+    city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
     output_directory = "output"
-    main(city, output_directory)
-    test(city, output_directory)
+    for city in city_list:
+        main(city, output_directory)
+        test(city, output_directory)
