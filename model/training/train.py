@@ -13,21 +13,13 @@ from pslpython.partition import Partition
 from pslpython.predicate import Predicate
 from pslpython.rule import Rule
 
-import argparse
-
-parser = argparse.ArgumentParser(description="Process some arguments.")
-parser.add_argument("--city", type=str, default="AA")
-parser.add_argument("--seed", type=int, default=42)
-args = parser.parse_args()
-city = args.city
-seed = args.seed
+# Import configuration
+from config import Settings, Paths
 
 def seed_everything(seed_value):
     random.seed(seed_value)
     np.random.seed(seed_value)
     os.environ['PYTHONHASHSEED'] = str(seed_value)
-
-seed_everything(seed)
 
 ADDITIONAL_PSL_OPTIONS = {
     'log4j.threshold': 'INFO'
@@ -37,32 +29,22 @@ ADDITIONAL_CLI_OPTIONS = [
     # '--postgres'
 ]
 
-def main(city, output_directory):
+def main(args):
+    seed_everything(args.seed)
    
-    global THIS_DIR
-    global TRAIN_DIR
-    global EVAL_DIR
-
-    global MODEL_NAME
-    MODEL_NAME = "train_model"
+    # Use configuration instead of global variables
+    model_name = Settings.PSL_TRAIN_MODEL_NAME
+    train_dir = Paths.PSL_GENERATED_TRAIN_DATA
+    eval_dir = Paths.PSL_PROCESSED_TEST_DATA
+    this_dir = Paths.PSL_TRAINING_DIR
     
-    eval_directory = "processed_test_data"
-    train_directory = "generated_train_data"
+    weight_directory = Paths.PSL_LEARNT_WEIGHT_DIR
+    weight_file_loc = Paths.PSL_INIT_WEIGHT_FILE
     
-    THIS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    #EVAL_DIR = os.path.join(THIS_DIR, directory, city)
-    TRAIN_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', train_directory, city, "train")
-    EVAL_DIR = os.path.join(os.path.dirname(os.path.dirname(THIS_DIR)), 'data', eval_directory, city)
-    
-    weight_directory = "learnt_weight"
-    weight_directory = os.path.join(THIS_DIR, weight_directory)
-    
-    weight_file_loc = "init_weight_file.json"
-    weight_file_loc = os.path.join(THIS_DIR, weight_file_loc)
     with open(weight_file_loc) as f:
         weight_file = json.load(f)
     
-    model = Model(MODEL_NAME)
+    model = Model(model_name)
 
     # Add Predicates
     add_predicates(model)
@@ -71,37 +53,20 @@ def main(city, output_directory):
     add_rules(model, weight_file)
     
     # Model training to get the learnt weights
-    learn(model, os.path.join(THIS_DIR, 'temp_learn'))
+    learn(model, Paths.PSL_TEMP_LEARN_DIR, train_dir, eval_dir)
 
     # Write down the learnt weights
-    write_weights(model, weight_directory, city)
-        
-    # Model infers to get results
-    results = infer(model, city, os.path.join(THIS_DIR, 'temp'))
-
-    # Write down the results
-    write_results(results, model, output_directory, city)
+    write_weights(model, weight_directory)
     
     return True
 
-def write_weights(model, weight_directory, city):
-    weight_path = os.path.join(weight_directory, f'{city}_weights.txt')
+def write_weights(model, weight_directory):
+    weight_path = os.path.join(weight_directory, 'learnt_weights.txt')
     os.makedirs(weight_directory, exist_ok = True)
     with open(weight_path,'w') as f:
         for rule in model.get_rules():
             print('   ' + str(rule))
             f.write('   ' + str(rule) + '\n')
-
-# Write results to a folder
-def write_results(results, model, output_directory, city):
-    out_dir = os.path.join(THIS_DIR, output_directory)
-    os.makedirs(out_dir, exist_ok = True)
-    for predicate in model.get_predicates().values():
-        if (predicate.closed()):
-            continue
-
-        out_path = os.path.join(out_dir, f"{city}_pred.txt")
-        results[predicate].to_csv(out_path, sep = "\t", header = False, index = False)
 
 # Declare predicates for the model
 def add_predicates(model):
@@ -210,11 +175,11 @@ def add_rules(model, weight_file):
         model.add_rule(Rule(str(weight_file[rule]) + ": " + rule))
 
 # Load data from files
-def add_data(model, train_type):
+def add_data(model, train_type, train_dir, eval_dir):
     for predicate in model.get_predicates().values():
         predicate.clear_data()
         
-    DATA_DIR = TRAIN_DIR if train_type == "train" else EVAL_DIR
+    DATA_DIR = train_dir if train_type == "train" else eval_dir
     
     path = os.path.join(DATA_DIR, 'spoken.txt')
     model.get_predicate('Spoken').add_data_file(Partition.OBSERVATIONS, path)
@@ -267,103 +232,6 @@ def add_data(model, train_type):
     path = os.path.join(DATA_DIR, 'sectiontype_truth.txt')
     model.get_predicate('Section').add_data_file(Partition.TRUTH, path)
     
-def learn(model, temp_dir):
-    add_data(model,'train')
+def learn(model, temp_dir, train_dir, eval_dir):
+    add_data(model, 'train', train_dir, eval_dir)
     model.learn(temp_dir = temp_dir,additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
-    
-def infer(model, city, temp_dir):
-    add_data(model,'test')
-    return model.infer(temp_dir = temp_dir, additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
-
-# Get predictions for a city
-def get_pred(city, output_directory):
-    with open(f"{output_directory}/{city}_pred.txt") as f:        
-        pred = f.readlines()
-    return pred
-
-def get_pred_list(city, output_directory):
-    pred = get_pred(city, output_directory)
-
-    pred_l = []
-    
-    to_return = {}
-    for p_i in pred:
-        x = p_i.strip().split("\t")
-        meet_id = x[0]
-        ut_id = x[1]
-        ct = x[2]
-        tv = x[3]
-        
-        key = '{}-{}'.format(meet_id,ut_id)
-        
-        if key not in to_return:
-            to_return[key] = {'PH':0,'PC':0,'Other':0}
-        to_return[key][ct]=float(tv)
-    return {k:sorted(v.items(), key=operator.itemgetter(1),reverse=True)[0][0] for k,v in to_return.items()}     
-
-# Get label files for a city
-def get_truth_modified(city):
-    with open(EVAL_DIR + f"/commenttype_truth.txt") as f:        
-        truth = f.readlines()
-    return truth
-
-def get_truth_dict_modified(city):
-    truth = get_truth_modified(city)
-    to_return = {}
-    for line in truth:
-        x = line.strip('\n').split('\t')
-        meet_id = x[0]
-        ut_id = x[1]
-        ct = x[2]
-        tv = x[3]        
-        key = '{}-{}'.format(meet_id,ut_id)
-        
-        if key not in to_return:
-            to_return[key] = {'PH':0,'PC':0,'Other':0}
-        to_return[key][ct]=float(tv)
-    return {k:sorted(v.items(), key=operator.itemgetter(1),reverse=True)[0][0] for k,v in to_return.items()}
-
-# Compute recall, precision and f1 for one target
-def get_prfs(truth,preds,target):
-    keys = sorted(truth.keys())
-    true_vec = [int(truth[k]==target) for k in keys]
-    pred_vec = [int(preds[k]==target) for k in keys]
-    return true_vec,pred_vec
-
-def all_(target, city, output_directory):
-    all_true = []
-    all_pred = []
-    truth_dict = get_truth_dict_modified(city)
-    preds = get_pred_list(city, output_directory)
-
-    tv,pv = get_prfs(truth_dict,preds,target)
-    all_true.extend(tv)
-    all_pred.extend(pv)
-    if len(set(all_true)) == 1 and len(set(all_pred)) == 1:
-        return (None, None, None, None)
-    return prfs(all_true,all_pred,average='binary')
-
-def test(city, output_directory):
-    # Compute metric values for PC and PH
-    
-    output_directory = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__))), output_directory)
-    rs4 = all_('PC', city, output_directory)
-    rs2 = all_('PH', city, output_directory)
-    
-    def a(s):
-        if s is None:
-            return "N/A"
-        return "{:.3f}".format(round(s, 3))
-    k = (rs4[2] + rs2[2]) / 2 if rs2[2] is not None else None
-    out = f"Recall, Precision and F1 score of Public Comments of {city} are: " + " & ".join([a(rs4[1]), a(rs4[0]), a(rs4[2])])
-    print("=========================================================================")
-    print(out)
-    print("=========================================================================")
-
-    return rs4, rs2
-
-if (__name__ == '__main__'):
-    #city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
-    output_directory = "output"
-    main(city, output_directory)
-    test(city, output_directory)
