@@ -116,8 +116,6 @@ def add_predicates(model):
 
 # Add rules and corresponding weights
 def add_rules(model, weight_file):
-    
-  ######################  
         
     rules_list = [
         # speaker rules

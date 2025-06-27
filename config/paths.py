@@ -37,16 +37,18 @@ class Paths:
     PSL_MODEL_DIR = BASE_DIR / "model"
     PSL_TRAINING_DIR = PSL_MODEL_DIR / "training"
     PSL_INFERENCE_DIR = PSL_MODEL_DIR / "inference"
+    PSL_PAPER_REPRODUCE_DIR = PSL_MODEL_DIR / "paper_reproduce"
     
     # PSL data directories
-    PSL_PROCESSED_TEST_DATA = DATA_DIR / "processed_test_data"
-    PSL_GENERATED_TRAIN_DATA = DATA_DIR / "generated_train_data"
+    PSL_PROCESSED_TEST_DATA = DATA_DIR / "processed_test_data" / "AA"
+    PSL_GENERATED_TRAIN_DATA = DATA_DIR / "processed_train_data" / "AA" / "train"
     
     # PSL output directories
     PSL_LEARNT_WEIGHT_DIR = PSL_TRAINING_DIR / "learnt_weight"
     PSL_TEMP_LEARN_DIR = PSL_TRAINING_DIR / "temp_learn"
-    PSL_TEMP_INFER_DIR = PSL_INFERENCE_DIR / "temp"
+    PSL_TEMP_INFER_DIR = PSL_TRAINING_DIR / "temp_infer"
     PSL_OUTPUT_DIR = PSL_INFERENCE_DIR / "output"
+    PSL_PAPER_REPRODUCE_OUTPUT = PSL_PAPER_REPRODUCE_DIR / "output"
     
     # PSL config files
     PSL_INIT_WEIGHT_FILE = PSL_TRAINING_DIR / "init_weight_file.json"
