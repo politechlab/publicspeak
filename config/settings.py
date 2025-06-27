@@ -8,6 +8,10 @@ class Settings:
     SEED = 42
     SAVE_PLM_MODEL = True
     
+    # PSL model settings
+    PSL_TRAIN_MODEL_NAME = "train_model"
+    PSL_TEST_MODEL_NAME = "test_model"
+    
     # video processing settings
     VIDEO_MODE = "full"
     

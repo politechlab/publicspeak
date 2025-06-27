@@ -33,6 +33,35 @@ class Paths:
     EVAL_DIR = GENERATED_DIR / "eval"
     TEST_DIR = GENERATED_DIR / "test"
     
+    # PSL model paths
+    PSL_MODEL_DIR = BASE_DIR / "model"
+    PSL_TRAINING_DIR = PSL_MODEL_DIR / "training"
+    PSL_INFERENCE_DIR = PSL_MODEL_DIR / "inference"
+    
+    # PSL data directories
+    PSL_PROCESSED_TEST_DATA = DATA_DIR / "processed_test_data"
+    PSL_GENERATED_TRAIN_DATA = DATA_DIR / "generated_train_data"
+    
+    # PSL output directories
+    PSL_LEARNT_WEIGHT_DIR = PSL_TRAINING_DIR / "learnt_weight"
+    PSL_TEMP_LEARN_DIR = PSL_TRAINING_DIR / "temp_learn"
+    PSL_TEMP_INFER_DIR = PSL_INFERENCE_DIR / "temp"
+    PSL_OUTPUT_DIR = PSL_INFERENCE_DIR / "output"
+    
+    # PSL config files
+    PSL_INIT_WEIGHT_FILE = PSL_TRAINING_DIR / "init_weight_file.json"
+    PSL_WEIGHT_FILE = PSL_INFERENCE_DIR / "weight_file.json"
+    
+    @classmethod
+    def get_psl_train_dir(cls):
+        """Get PSL training data directory"""
+        return cls.PSL_GENERATED_TRAIN_DATA
+    
+    @classmethod
+    def get_psl_eval_dir(cls):
+        """Get PSL evaluation data directory"""
+        return cls.PSL_PROCESSED_TEST_DATA
+    
     @classmethod
     def create_dirs(cls):
         """create all necessary directories"""
@@ -40,6 +69,8 @@ class Paths:
             cls.RAW_DIR, cls.AUDIO_DIR, cls.VIDEO_DIR, cls.TRANSCRIPTS_DIR,
             cls.VIDEO_POOL_DIR, cls.WAV_INPUT_DIR, cls.WAV_OUTPUT_DIR, cls.TS_OUTPUT_DIR,
             cls.PROCESSED_DIR, cls.LLM_DIR, cls.PLM_DIR, cls.PUBLIC_COMMENTS_DIR,
-            cls.GENERATED_DIR, cls.TRAIN_DIR, cls.EVAL_DIR, cls.TEST_DIR
+            cls.GENERATED_DIR, cls.TRAIN_DIR, cls.EVAL_DIR, cls.TEST_DIR,
+            cls.PSL_LEARNT_WEIGHT_DIR, cls.PSL_TEMP_LEARN_DIR, cls.PSL_TEMP_INFER_DIR, 
+            cls.PSL_OUTPUT_DIR
         ]:
             path.mkdir(parents=True, exist_ok=True) 
