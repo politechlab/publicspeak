@@ -41,7 +41,11 @@ def main():
         elif args.mode == 'paper_reproduce':
             print(f"Starting paper reproduction")
             from .paper_reproduce.infer import main as paper_infer_main
-            paper_infer_main(args)
+            from .paper_reproduce.infer import test as paper_infer_test
+            city_list = ["SEA", "OAK", "RCH", "AA", "LS", "RO", "JS"]
+            for city in city_list:
+                paper_infer_main(args, city)
+                paper_infer_test(args, city)
             print(f"Paper reproduction completed")
             
     except ImportError as e:

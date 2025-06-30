@@ -65,7 +65,7 @@ def write_results(results, model, output_directory, this_dir):
         if (predicate.closed()):
             continue
 
-        out_path = os.path.join(out_dir, f"{predicate.name}_pred.txt")
+        out_path = os.path.join(out_dir, f"{predicate.name()}_pred.txt")
         results[predicate].to_csv(out_path, sep = "\t", header = False, index = False)
 
 # Declare predicates for the model
@@ -116,8 +116,6 @@ def add_predicates(model):
 
 # Add rules and corresponding weights
 def add_rules(model, weight_file):
-    
-  ######################  
         
     rules_list = [
         # speaker rules

@@ -29,13 +29,13 @@ ADDITIONAL_CLI_OPTIONS = [
     # '--postgres'
 ]
 
-def main(args):
+def main(args, city):
     seed_everything(args.seed)
    
     # Use configuration instead of global variables
     model_name = Settings.PSL_TEST_MODEL_NAME
     eval_dir = Paths.PSL_PROCESSED_TEST_DATA
-    this_dir = Paths.PSL_INFERENCE_DIR
+    this_dir = Paths.PSL_PAPER_REPRODUCE_DIR
     
     weight_file_loc = Paths.PSL_WEIGHT_FILE
     
@@ -43,30 +43,29 @@ def main(args):
         weight_file = json.load(f)
     
     model = Model(model_name)
-
+    
     # Add Predicates
     add_predicates(model)
-
+    
     # Add Rules
-    add_rules(model, weight_file)
+    add_rules(model, weight_file, city)
 
     # Model infers to get results
-    results = infer(model, Paths.PSL_TEMP_INFER_DIR, eval_dir)
+    results = infer(model, Paths.PSL_PAPER_REPRODUCE_OUTPUT, eval_dir, city)
 
     # Write down the results
-    write_results(results, model, args.output, this_dir)
+    write_results(results, model, Paths.PSL_PAPER_REPRODUCE_OUTPUT, city)
     
     return True
 
 # Write results to a folder
-def write_results(results, model, output_directory, this_dir):
-    out_dir = os.path.join(this_dir, output_directory)
-    os.makedirs(out_dir, exist_ok = True)
+def write_results(results, model, output_directory, city):
+    os.makedirs(output_directory, exist_ok = True)
     for predicate in model.get_predicates().values():
         if (predicate.closed()):
             continue
 
-        out_path = os.path.join(out_dir, f"{predicate.name}_pred.txt")
+        out_path = os.path.join(output_directory, f"{city}_pred.txt")
         results[predicate].to_csv(out_path, sep = "\t", header = False, index = False)
 
 # Declare predicates for the model
@@ -116,7 +115,7 @@ def add_predicates(model):
 
 
 # Add rules and corresponding weights
-def add_rules(model, weight_file):
+def add_rules(model, weight_file, city):
     
   ######################  
         
@@ -173,7 +172,7 @@ def add_rules(model, weight_file):
     model.add_rule(Rule('Section(M, U,+d) = 1 .'))
     
     for rule in rules_list:
-        model.add_rule(Rule(weight_file[rule] + ": " + rule))
+        model.add_rule(Rule(weight_file[city][rule] + ": " + rule))
 
 # Load data from files
 def add_data(model, eval_dir):
@@ -233,18 +232,18 @@ def add_data(model, eval_dir):
     path = os.path.join(DATA_DIR, 'sectiontype_truth.txt')
     model.get_predicate('Section').add_data_file(Partition.TRUTH, path)
     
-def infer(model, temp_dir, eval_dir):
-    add_data(model, eval_dir)
+def infer(model, temp_dir, eval_dir, city):
+    add_data(model, eval_dir / city)
     return model.infer(temp_dir = temp_dir, additional_cli_options = ADDITIONAL_CLI_OPTIONS, psl_config = ADDITIONAL_PSL_OPTIONS)
 
 # Get predictions
-def get_pred(output_directory):
-    with open(f"{output_directory}/CommentType_pred.txt") as f:        
+def get_pred(city, output_directory):
+    with open(f"{output_directory}/{city}_pred.txt") as f:        
         pred = f.readlines()
     return pred
 
-def get_pred_list(output_directory):
-    pred = get_pred(output_directory)
+def get_pred_list(city, output_directory):
+    pred = get_pred(city, output_directory)
 
     pred_l = []
     
@@ -264,13 +263,13 @@ def get_pred_list(output_directory):
     return {k:sorted(v.items(), key=operator.itemgetter(1),reverse=True)[0][0] for k,v in to_return.items()}     
 
 # Get label files
-def get_truth_modified(eval_dir):
-    with open(eval_dir + f"/commenttype_truth.txt") as f:         
+def get_truth_modified(eval_dir, city):
+    with open(eval_dir / f"{city}/commenttype_truth.txt") as f:         
         truth = f.readlines()
     return truth
 
-def get_truth_dict_modified(eval_dir):
-    truth = get_truth_modified(eval_dir)
+def get_truth_dict_modified(eval_dir, city):
+    truth = get_truth_modified(eval_dir, city)
     to_return = {}
     for line in truth:
         x = line.strip('\n').split('\t')
@@ -292,32 +291,34 @@ def get_prfs(truth,preds,target):
     pred_vec = [int(preds[k]==target) for k in keys]
     return true_vec,pred_vec
 
-def all_(target, output_directory, eval_dir):
+def all_(target, output_directory, eval_dir, city):
     all_true = []
     all_pred = []
-    truth_dict = get_truth_dict_modified(eval_dir)
-    preds = get_pred_list(output_directory)
+    truth_dict = get_truth_dict_modified(eval_dir, city)
+    preds = get_pred_list(city, output_directory)
 
-    tv,pv = get_prfs(truth_dict,preds,target)
+    tv,pv = get_prfs(truth_dict, preds, target)
     all_true.extend(tv)
     all_pred.extend(pv)
     if len(set(all_true)) == 1 and len(set(all_pred)) == 1:
         return (None, None, None, None)
-    return prfs(all_true,all_pred,average='binary')
+    return prfs(all_true, all_pred, average='binary')
 
-def test(output_directory, eval_dir):
+def test(args, city):
     # Compute metric values for PC and PH
-    
-    output_directory = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__))), output_directory)
-    rs4 = all_('PC', output_directory, eval_dir)
-    rs2 = all_('PH', output_directory, eval_dir)
+    print("here")
+    eval_dir = Paths.PSL_PROCESSED_TEST_DATA
+    output_directory = Paths.PSL_PAPER_REPRODUCE_OUTPUT
+    #output_directory = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__))), output_directory)
+    rs4 = all_('PC', output_directory, eval_dir, city)
+    rs2 = all_('PH', output_directory, eval_dir, city)
     
     def a(s):
         if s is None:
             return "N/A"
         return "{:.3f}".format(round(s, 3))
     k = (rs4[2] + rs2[2]) / 2 if rs2[2] is not None else None
-    out = f"Recall, Precision and F1 score of Public Comments are: " + " & ".join([a(rs4[1]), a(rs4[0]), a(rs4[2])])
+    out = f"Recall, Precision and F1 score of {city} Public Comments are: " + " & ".join([a(rs4[1]), a(rs4[0]), a(rs4[2])])
     print("=========================================================================")
     print(out)
     print("=========================================================================")
