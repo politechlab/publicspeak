@@ -24,11 +24,12 @@ publicspeak/pipeline/
 ├── generate_processed_data/       # Data generation module
 │   └── generate_processed_data.py # Data processing and generation
 ├── plm_processor/                 # PLM processing utilities
-├── transcribe_and_LLM/           # Combined transcription and LLM
 └── process_data_from_cdp/        # CDP data processing
 ```
 
 ## 🚀 Quick Start
+
+One can always find configurations in the folder config, or one can input using command line options.
 
 ### 1. Audio Transcription
 
@@ -36,9 +37,7 @@ publicspeak/pipeline/
 # Transcribe audio file
 python -m pipeline.main --mode transcribe \
     --audio_file path/to/audio.wav \
-    --output_dir output \
-    --model_name large-v2 \
-    --device cuda:1
+    --output_dir output
 ```
 
 ### 2. LLM Processing
@@ -58,7 +57,6 @@ python -m pipeline.main --mode plm \
     --lr 2e-5 \
     --epoch 10 \
     --seed 42 \
-    --device cuda:1
 ```
 
 ### 4. PLM Prediction
@@ -67,8 +65,6 @@ python -m pipeline.main --mode plm \
 # Run PLM prediction on transcript
 python -m pipeline.main --mode plm_predict \
     --ts_path path/to/transcription.json \
-    --plm_model_name roberta-base \
-    --device cuda:1
 ```
 
 ### 5. Data Generation
@@ -80,7 +76,6 @@ python -m pipeline.main --mode generate_data \
     --train_file train_data.json \
     --test_file test_data.json \
     --eval_file eval_data.json \
-    --plm_file_name AA_pred_LOO_roberta.json \
     --output_dir output
 ```
 
@@ -122,53 +117,12 @@ python -m pipeline.main --mode full \
 - `--test_file`: Test data file name
 - `--eval_file`: Evaluation data file name
 - `--plm_file_name`: PLM prediction file name
-- `--vocab_path`: Vocabulary file path (for test_only mode)
 
 ### General Parameters
 - `--output_dir`: Output directory (default: output)
 - `--ts_path`: Transcription file path
 - `--psl_data_dir`: PSL data directory
 
-## 📋 Usage Examples
-
-### Basic Transcription
-```bash
-python -m pipeline.main --mode transcribe \
-    --audio_file meetings/meeting_001.wav \
-    --output_dir transcriptions \
-    --model_name large-v2
-```
-
-### LLM Processing with Custom Parameters
-```bash
-python -m pipeline.main --mode find_public_trigger \
-    --ts_path transcriptions/meeting_001.json \
-    --gpt_version gpt-4 \
-    --cut_off_th 100 \
-    --long_text_th 500 \
-    --ratio_count 0.3
-```
-
-### PLM Training with Custom Settings
-```bash
-python -m pipeline.main --mode plm \
-    --plm_model_name roberta-base \
-    --lr 1e-5 \
-    --epoch 15 \
-    --seed 123 \
-    --plm_batch_size 16 \
-    --save_plm_model True
-```
-
-### Test-Only Data Generation
-```bash
-python -m pipeline.main --mode generate_data \
-    --data_mode test_only \
-    --test_file test_data.json \
-    --plm_file_name AA_pred_LOO_roberta.json \
-    --vocab_path vocab.json \
-    --output_dir processed_data
-```
 
 ## 🔧 Configuration
 
