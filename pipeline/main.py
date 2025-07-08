@@ -277,7 +277,28 @@ def run_extraction(args, trigger_path: str) -> str:
     result = get_extraction_result(args, trigger_path)
     return save_extraction_result(result, trigger_path)
 
-def run_plm_prediction(args) -> str:
+def prepare_trigger_data(args, trigger_path):
+
+    with open(trigger_path) as f:
+        trigger = json.load(f)
+
+    filename = os.path.basename(trigger_path)           # -> WT_2022_04_11_trigger_general.json
+    prefix = filename.split("_trigger")[0]      # -> WT_2022_04_11
+    test = trigger['merged_data']
+    test_file = (args.raw_test_dir / prefix).with_suffix(".json")
+    with open(test_file, "w") as f:
+        json.dump({prefix: test}, f)
+    
+    return prefix + ".json"
+
+def prepare_llm_data(args, trigger_path):
+    with open(trigger_path) as f:
+        trigger = json.load(f)
+    filename = os.path.basename(trigger_path)
+    with open(Paths.LLM_DIR / filename, "w") as f:
+        json.dump(trigger, f)
+
+def run_plm_prediction(args, ts_path) -> str:
     """Run PLM prediction using trained model on transcript"""
     
     # 创建PLM处理器实例
@@ -291,7 +312,7 @@ def run_plm_prediction(args) -> str:
     processor.load_trained_model()
     
     # 先经过clean_and_find_manager处理
-    manager, merged_data = clean_and_find_manager(args.ts_path)
+    manager, merged_data = clean_and_find_manager(ts_path)
     
     # merged_data已经是transcript格式，直接使用
     transcript_data = merged_data
@@ -300,7 +321,7 @@ def run_plm_prediction(args) -> str:
     result = processor.process_transcript(transcript_data)
     
     # 结合文件名和PLM_DIR路径
-    file_name = os.path.splitext(os.path.basename(args.ts_path))[0] + "_plm.json"
+    file_name = os.path.splitext(os.path.basename(ts_path))[0] + "_plm.json"
     output_file = Paths.PLM_DIR / file_name
     with open(output_file, "w") as f:
         json.dump(result, f, indent=2)
@@ -331,16 +352,16 @@ def run_plm_test(args, test_file: str) -> str:
     
     return plm_path
 
-def run_generate_data(args) -> None:
+def run_generate_data(args, data_mode, test_file) -> None:
     """Run data generation process"""
     from pipeline.generate_processed_data.generate_processed_data import generate_processed_data, process_test_set_only
     
-    if args.data_mode == "test_only":
+    if data_mode == "test_only":
         # 测试集模式只需要test_file
         if not args.test_file:
             raise ValueError("test_file is required for test_only mode")
         
-        test_file = args.raw_test_dir / args.test_file
+        test_file = args.raw_test_dir / test_file
         print(f"Using test file: {test_file}")
         
         # 设置输出目录
@@ -352,19 +373,18 @@ def run_generate_data(args) -> None:
             test_file=test_file,
             output_dir=output_dir,
             plm_file_name=args.plm_file_name,
-            vocab_path=args.vocab_path,
             seed=args.seed
         )
         print("测试集处理完成！")
         
     else:
         # 完整模式需要train_file和test_file
-        if not args.train_file or not args.test_file:
+        if not args.train_file or not test_file:
             raise ValueError("train_file and test_file are required for full data generation")
         
         # 使用直接文件路径
         train_file = args.raw_train_dir / args.train_file
-        test_file = args.raw_test_dir / args.test_file
+        test_file = args.raw_test_dir / test_file
         val_file = args.raw_eval_dir / args.eval_file
         
         print(f"Using direct file paths")
@@ -403,28 +423,35 @@ def main():
         plm_main(args)
     
     elif args.mode == "plm_predict":
-        if not args.ts_path:
+        # predict a transcript
+        if not args.plm_predict:
             raise ValueError("ts_path is required for plm_predict mode")
-        run_plm_prediction(args)
+        run_plm_prediction(args, args.ts_path)
     
     elif args.mode == "plm_test":
+        # predict a gathered test file
         if not args.ts_path:
             raise ValueError("ts_path is required for plm_test mode")
         run_plm_test(args, args.ts_path)
     
     elif args.mode == "generate_data":
-        run_generate_data(args)
+        run_generate_data(args, args.data_mode, args.test_file)
     
     elif args.mode == "full":
         if not args.audio_file:
             raise ValueError("audio_file is required for full mode")
         ts_path = run_transcribe(args)
         trigger_path = run_llm_processing(args, ts_path)
+        print(trigger_path)
         run_extraction(args, trigger_path)
         
-        # 训练PLM模型（包含保存模型）
-        from pipeline.PLM.finetuned_one_val_out import main as plm_main
-        plm_main(args)
+        run_plm_prediction(args, ts_path)
+        test_file = prepare_trigger_data(args, trigger_path)
+        prepare_llm_data(args, trigger_path)
+        run_generate_data(args, "test_only", test_file)
+        
+        
+        
 
 if __name__ == "__main__":
     main() 

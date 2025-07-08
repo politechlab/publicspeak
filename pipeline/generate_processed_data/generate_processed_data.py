@@ -196,7 +196,6 @@ def generate_processed_data(train_file: str,
 def process_test_set_only(test_file: str,
                          output_dir: str = None,
                          plm_file_name: str = "AA_pred_LOO_roberta.json",
-                         vocab_path: str = None,
                          seed: int = 42) -> None:
     """
     只处理测试集数据
@@ -205,7 +204,6 @@ def process_test_set_only(test_file: str,
         test_file: 测试数据文件路径
         output_dir: 输出目录
         plm_file_name: PLM预测文件名
-        vocab_path: 现有词汇表文件路径
         seed: 随机种子
     """
     # 设置随机种子
@@ -307,12 +305,12 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     
     for ind, example in enumerate(testv_list):
         spoken_testv.append(make_spoken(example))
-        testv_commenttype += make_commenttype(example)
+        #testv_commenttype += make_commenttype(example)
         testv_commenttype_tar += make_commenttype_tar(example)
         testv_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["pred"]))
         
         testv_section_type_gpt.extend(make_section_type_gpt(example))
-        testv_section_type.extend(make_section_type(example))
+        # testv_section_type.extend(make_section_type(example))
         testv_section_type_tar.extend(make_section_type_tar(example))
         
         testv_speaker_type_dict = _make_speakertype(example, testv_speaker_type_dict)
@@ -347,13 +345,13 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     # write_a_file(longUtter_testv, output + "/test/longUtter.txt")
     write_a_file(testv_speaker_long, output + "/test/speaker_long.txt")
     write_a_file(testv_speaker_type, output + "/test/speaker_type_truth.txt")
-    write_a_file(testv_commenttype, output + "/test/commenttype_truth.txt")
+    #write_a_file(testv_commenttype, output + "/test/commenttype_truth.txt")
     write_a_file(testv_llm_commenttype, output + "/test/commenttype_llm.txt")
     write_a_file(testv_speaker_type_tar, output + "/test/speaker_type_target.txt")
     write_a_file(testv_commenttype_tar, output + "/test/commenttype_target.txt")
     
     write_a_file(testv_section_type_gpt, output + "/test/sectiontype_obs.txt")
-    write_a_file(testv_section_type, output + "/test/sectiontype_truth.txt")
+    #write_a_file(testv_section_type, output + "/test/sectiontype_truth.txt")
     write_a_file(testv_section_type_tar, output + "/test/sectiontype_target.txt")
     
     write_a_file(testv_precede, output + "/test/precedes.txt")

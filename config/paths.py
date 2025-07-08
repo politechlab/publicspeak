@@ -23,7 +23,7 @@ class Paths:
     
     # processed data path
     PROCESSED_DIR = DATA_DIR / "processed"
-    LLM_DIR = PROCESSED_DIR / "LLM_indicators"
+    LLM_DIR = DATA_DIR / "LLM_indicators"
     PLM_DIR = DATA_DIR / "PLM_indicators"
     PUBLIC_COMMENTS_DIR = PROCESSED_DIR / "public_comments"
     
