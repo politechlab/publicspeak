@@ -24,7 +24,7 @@ def process_with_llm(content: str, model: str = None, temperature: float = None,
         if args.mode == "find_public_trigger":
             prompt_template = PROMPTS.get("find_public_trigger")
         else:
-            prompt_template = PROMPTS.get("find_public_trigger_general")  # 或者你定义的其他 key
+            prompt_template = PROMPTS.get("find_public_trigger_general")  # or other key you define
             if not prompt_template:
                 raise ValueError(f"Unknown mode: {args.mode}")
     else:

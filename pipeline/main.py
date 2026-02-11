@@ -13,7 +13,7 @@ from config import Paths, Settings
 def parse_args():
     parser = argparse.ArgumentParser(description='Public Speech Processing Pipeline')
     
-    # 转写相关参数
+    # Transcription-related arguments
     parser.add_argument('--mode', type=str, required=True, 
                       choices=['transcribe', 'process', 'extract', 'plm', 'plm_predict', 'full', 'generate_data'],
                       help='Pipeline mode')
@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--compute_type', type=str, default='float16',
                       help='Compute type for WhisperX')
     
-    # LLM处理相关参数
+    # LLM processing arguments
     parser.add_argument('--gpt_version', type=str, default=Settings.GPT_VERSION,
                       help='GPT model version')
     parser.add_argument('--cut_off_th', type=int, default=Settings.CUT_OFF_THRESHOLD,
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--ratio_count', type=float, default=Settings.RATIO_COUNT,
                        help='Threshold for identifying long utterance ratio')
     
-    # PLM相关参数
+    # PLM arguments
     parser.add_argument('--plm_model_name', type=str, default=Settings.MODEL_NAME,
                       help='PLM model name')
     parser.add_argument('--lr', type=float, default=Settings.LEARNING_RATE,
@@ -67,7 +67,7 @@ def parse_args():
     parser.add_argument('--test_file', type=str, default=Settings.TEST_FILE,
                       help='Testing data file name')
     
-    # 生成数据相关参数
+    # Data generation arguments
     parser.add_argument('--plm_file_name', type=str, default="AA_pred_LOO_roberta.json",
                       help='PLM prediction file name')
     parser.add_argument('--data_mode', type=str, choices=['full', 'test_only'], default='full',
@@ -75,7 +75,7 @@ def parse_args():
     parser.add_argument('--vocab_path', type=str, default=None,
                       help='Existing vocabulary file path (only for test_only mode)')
     
-    # 输出相关参数
+    # Output arguments
     parser.add_argument('--output_dir', type=str, default='output',
                       help='Output directory')
     parser.add_argument('--psl_data_dir', type=str, default=Paths.PSL_DATA_DIR,
@@ -231,11 +231,11 @@ def get_plm_result(args, ts_path: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: PLM processing result
     """
-    # 读取转录数据
+    # Load transcript data
     with open(ts_path) as f:
         transcript_data = json.load(f)
     
-    # 使用PLM处理转录数据
+    # Process transcript with PLM
     from pipeline.PLM.finetuned_one_val_out import process_transcript
     result = process_transcript(
         transcript_data=transcript_data,
@@ -301,26 +301,26 @@ def prepare_llm_data(args, trigger_path):
 def run_plm_prediction(args, ts_path) -> str:
     """Run PLM prediction using trained model on transcript"""
     
-    # 创建PLM处理器实例
+    # Create PLM processor instance
     processor = PLMProcessor(
         model_name=args.plm_model_name,
         device=args.device,
         seed=args.seed
     )
     
-    # 加载已训练的模型
+    # Load trained model
     processor.load_trained_model()
     
-    # 先经过clean_and_find_manager处理
+    # Preprocess with clean_and_find_manager
     manager, merged_data = clean_and_find_manager(ts_path)
     
-    # merged_data已经是transcript格式，直接使用
+    # merged_data is already in transcript format, use directly
     transcript_data = merged_data
     
-    # 处理转录数据
+    # Process transcript
     result = processor.process_transcript(transcript_data)
     
-    # 结合文件名和PLM_DIR路径
+    # Combine filename with PLM_DIR path
     file_name = os.path.splitext(os.path.basename(ts_path))[0] + "_plm.json"
     output_file = Paths.PLM_DIR / file_name
     with open(output_file, "w") as f:
@@ -332,20 +332,20 @@ def run_plm_test(args, test_file: str) -> str:
     """Run PLM prediction using trained model on test file"""
     from pipeline.PLM.finetuned_one_val_out import PLMProcessor
     
-    # 创建PLM处理器实例
+    # Create PLM processor instance
     processor = PLMProcessor(
         model_name=args.plm_model_name,
         device=args.device,
         seed=args.seed
     )
     
-    # 加载已训练的模型
+    # Load trained model
     processor.load_trained_model()
     
-    # 处理测试文件
+    # Process test file
     result = processor.process_test_file(test_file)
     
-    # 保存结果
+    # Save result
     plm_path = os.path.splitext(test_file)[0] + "_plm_test.json"
     with open(plm_path, "w") as f:
         json.dump(result, f, indent=2)
@@ -357,43 +357,43 @@ def run_generate_data(args, data_mode, test_file) -> None:
     from pipeline.generate_processed_data.generate_processed_data import generate_processed_data, process_test_set_only
     
     if data_mode == "test_only":
-        # 测试集模式只需要test_file
+        # test_only mode only requires test_file
         if not args.test_file:
             raise ValueError("test_file is required for test_only mode")
         
         test_file = args.raw_test_dir / test_file
         print(f"Using test file: {test_file}")
         
-        # 设置输出目录
+        # Set output directory
         output_dir = args.output_dir
         
-        print(f"开始仅处理测试集...")
-        # 调用测试集处理函数
+        print(f"Starting test set processing only...")
+        # Call test set processing function
         process_test_set_only(
             test_file=test_file,
             output_dir=output_dir,
             plm_file_name=args.plm_file_name,
             seed=args.seed
         )
-        print("测试集处理完成！")
+        print("Test set processing complete!")
         
     else:
-        # 完整模式需要train_file和test_file
+        # Full mode requires train_file and test_file
         if not args.train_file or not test_file:
             raise ValueError("train_file and test_file are required for full data generation")
         
-        # 使用直接文件路径
+        # Use direct file paths
         train_file = args.raw_train_dir / args.train_file
         test_file = args.raw_test_dir / test_file
         val_file = args.raw_eval_dir / args.eval_file
         
         print(f"Using direct file paths")
         
-        # 设置输出目录
+        # Set output directory
         output_dir = args.output_dir
         
-        print(f"开始完整数据处理...")
-        # 调用完整数据处理函数
+        print(f"Starting full data processing...")
+        # Call full data processing function
         generate_processed_data(
             train_file=train_file,
             test_file=test_file,
@@ -402,7 +402,7 @@ def run_generate_data(args, data_mode, test_file) -> None:
             plm_file_name=args.plm_file_name,
             seed=args.seed
         )
-        print("完整数据处理完成！")
+        print("Full data processing complete!")
 
 def main():
     """Main function to run the pipeline"""
@@ -419,7 +419,7 @@ def main():
     elif args.mode == "plm":
         from pipeline.PLM.finetuned_one_val_out import main as plm_main
         
-        # 运行训练（包含保存模型）
+        # Run training (including saving model)
         plm_main(args)
     
     elif args.mode == "plm_predict":

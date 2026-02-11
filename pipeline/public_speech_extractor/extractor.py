@@ -17,7 +17,7 @@ def clean_and_find_manager(ts_path: str) -> Tuple[str, List[Dict[str, Any]]]:
     with open(ts_path, 'r') as f:
         transcript_data = json.load(f)
     
-    # 清理文本
+    # Clean text
     clean_data = []
     for utterance in transcript_data['segments']:
         utterance["text"] = str(utterance["text"])
@@ -26,7 +26,7 @@ def clean_and_find_manager(ts_path: str) -> Tuple[str, List[Dict[str, Any]]]:
                 utterance["speaker"] = "UNKNOWN"
             clean_data.append(utterance)
     
-    # 合并相邻话语
+    # Merge adjacent utterances
     merged_data = []
     current_speaker = None
     current_text = ""
@@ -54,7 +54,7 @@ def clean_and_find_manager(ts_path: str) -> Tuple[str, List[Dict[str, Any]]]:
             temp_start = entry['start']
             current_end = entry['end']
     
-    # 添加最后一个条目
+    # Append the last entry
     if current_text:
         merged_data.append({
             "start": temp_start,
@@ -63,33 +63,33 @@ def clean_and_find_manager(ts_path: str) -> Tuple[str, List[Dict[str, Any]]]:
             "text": current_text
         })
     
-    # 统计每个说话人的话语数量
+    # Count utterances per speaker
     merged_utterance_counts = defaultdict(int)
     for entry in merged_data:
         merged_utterance_counts[entry['speaker']] += 1
     
-    # 找出说话最多的前三个说话人
+    # Get top 3 speakers by utterance count
     top_3_keys = [k for k, v in sorted(merged_utterance_counts.items(), key=lambda item: item[1], reverse=True)[:3]]
     
-    # 通过关键词识别主持人
+    # Identify chair by keywords
     for item in clean_data:
         if item['speaker'] in top_3_keys:
             if "Pledge of Allegiance" in item['text'] or "roll call" in item['text']:
                 return item['speaker'], merged_data
     
-    # 如果没有找到关键词，返回说话最多的说话人
+    # If no keyword match, return the top speaker
     return top_3_keys[0], merged_data
 
 def count_long_text_ratio(clean_data: List[Dict[str, Any]], long_text_th: int = 50) -> Dict[str, float]:
     """
-    计算每个说话人的长文本比例
-    
+    Compute long-text ratio per speaker.
+
     Args:
-        clean_data: 清理后的数据
-        long_text_th: 长文本阈值
-        
+        clean_data: Cleaned data.
+        long_text_th: Long-text threshold (word count).
+
     Returns:
-        Dict[str, float]: 每个说话人的长文本比例
+        Dict[str, float]: Long-text ratio per speaker.
     """
     merged_long_utterance_counts = defaultdict(int)
     merged_utterance_counts = defaultdict(int)
@@ -121,10 +121,10 @@ def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Di
     Returns:
         Dict[str, Any]: extraction result
     """
-    # 计算每个说话人的长文本比例
+    # Compute long-text ratio per speaker
     ratio_list = count_long_text_ratio(merged_data, args.long_text_th)
     
-    # 提取公共评论段落的起止位置
+    # Extract start/end indices of public comment segments
     pub_comments = {}
     se_pair = []
     for trigger_id, trigger_info in triggers.items():
@@ -136,7 +136,7 @@ def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Di
         except:
             se_pair.append((0, 0))
     
-    # 找出公共评论段落外的说话人
+    # Identify speakers outside public comment segments
     outside_speaker = set()
     for i in range(len(merged_data)):
         isin = False
@@ -145,7 +145,7 @@ def extract_public(args: Any, merged_data: List[Dict[str, Any]], idx_mapping: Di
         if not isin:
             outside_speaker.add(merged_data[i]["speaker"])
     
-    # 提取公共评论内容
+    # Extract public comment content
     public = {}
     
     if pub_comments:

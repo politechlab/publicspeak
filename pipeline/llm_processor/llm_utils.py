@@ -3,7 +3,7 @@ import json
 import openai
 from typing import Dict, Any, Optional, List
 
-# 关键词列表，用于cut_off函数
+# Keyword list for cut_off function
 keyword_list = ["citizen", "resident", "audience", "crowd", 
                 "citizens", "residents", "audiences", 
                 "communities", "comment", "comments", 

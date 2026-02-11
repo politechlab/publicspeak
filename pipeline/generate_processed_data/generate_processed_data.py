@@ -18,22 +18,22 @@ from config import Paths, Settings
 
 def load_data(train_file: str, test_file: str, val_file: str = None) -> Tuple[Dict[str, Any], int, int]:
     """
-    加载训练、验证和测试数据
-    
+    Load train, validation and test data.
+
     Args:
-        train_file: 训练数据文件路径
-        test_file: 测试数据文件路径
-        val_file: 验证数据文件路径（可选）
-        
+        train_file: Path to training data file.
+        test_file: Path to test data file.
+        val_file: Path to validation data file (optional).
+
     Returns:
-        Tuple[Dict[str, Any], int, int]: 合并后的数据字典，训练集大小，验证集大小
+        Tuple[Dict[str, Any], int, int]: Merged data dict, train size, validation size.
     """
     with open(train_file) as f:
         train = json.load(f)
     with open(test_file) as f:
         test = json.load(f)
     
-    # 检查验证集文件是否存在
+    # Check if validation file exists
     val = None
     if val_file and os.path.exists(val_file):
         with open(val_file) as f:
@@ -44,19 +44,19 @@ def load_data(train_file: str, test_file: str, val_file: str = None) -> Tuple[Di
         truth[key] = train[key]
     train_limit = len(train.keys())
     
-    # 如果有验证集，添加到truth中
+    # If validation set exists, add to truth
     if val is not None:
         for key in val:
             truth[key] = val[key]
         test_limit = train_limit + len(val.keys())
     else:
-        # 如果没有验证集，test_limit等于train_limit
+        # If no validation set, test_limit equals train_limit
         test_limit = train_limit
         
     for key in test:
         truth[key] = test[key]
         
-    # 处理文本格式
+    # Normalize text format
     for item in truth:
         for m in range(len(truth[item])):
             truth[item][m]["text"] = str(truth[item][m]["text"])
@@ -65,11 +65,11 @@ def load_data(train_file: str, test_file: str, val_file: str = None) -> Tuple[Di
 
 def process_section_types(truth: Dict[str, Any], current_dir: str) -> None:
     """
-    处理每个会议的部分类型
-    
+    Process section type for each meeting.
+
     Args:
-        truth: 数据字典
-        current_dir: 当前目录
+        truth: Data dictionary.
+        current_dir: Current directory.
     """
     # TODO
     for j in truth:
@@ -120,77 +120,77 @@ def generate_processed_data(train_file: str,
                           plm_file_name: str = "AA_pred_LOO_roberta.json",
                           seed: int = 42) -> None:
     """
-    生成处理后的数据
-    
+    Generate processed data.
+
     Args:
-        train_file: 训练数据文件路径
-        test_file: 测试数据文件路径
-        val_file: 验证数据文件路径（可选）
-        output_dir: 输出目录
-        plm_file_name: PLM预测文件名
-        seed: 随机种子
+        train_file: Path to training data file.
+        test_file: Path to test data file.
+        val_file: Path to validation data file (optional).
+        output_dir: Output directory.
+        plm_file_name: PLM prediction file name.
+        seed: Random seed.
     """
-    # 设置随机种子
+    # Set random seed
     random.seed(seed)
     np.random.seed(seed)
     
-    # 获取当前目录
+    # Get current directory
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    
-    # 加载数据
+
+    # Load data
     truth, train_limit, test_limit = load_data(train_file, test_file, val_file)
-    # 处理部分类型
+    # Process section types
     process_section_types(truth, current_dir)
-    
-    # 准备数据
+
+    # Prepare data
     data = [truth[i] for i in truth]
-    
-    # 创建输出目录
+
+    # Create output directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     subdir_path = os.path.join(output_dir, "mapping")
     if not os.path.exists(subdir_path):
         os.makedirs(subdir_path)
         
-    # 获取ID映射
+    # Get ID mappings
     i2t, t2i = assign_comment_index(truth)
     rename_speaker(truth)
     i2m, m2i = assign_meeting_id(truth)
     info2t, t2info = assign_info(truth)
-        
-    # 保存映射
+
+    # Save mappings
     with open(os.path.join(subdir_path, "all_id_mapping.json"), "w") as f:
         json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
     
-    # 创建子目录
+    # Create subdirectories
     for subdir in ["train", "eval", "test"]:
         subdir_path = os.path.join(output_dir, subdir)
         if not os.path.exists(subdir_path):
             os.makedirs(subdir_path)
             
-    # 分割数据集
+    # Split dataset
     print(len(data))
     training_set = data[:train_limit]
     if test_limit > train_limit:
-        # 有验证集的情况
+        # With validation set
         test_set = data[train_limit: test_limit]
         testv_set = data[test_limit:]
     else:
-        # 没有验证集的情况，test_set为空，testv_set包含所有测试数据
+        # No validation set: test_set empty, testv_set holds all test data
         test_set = []
         testv_set = data[train_limit:]
-    
-    # 处理数据
+
+    # Process data
     training_set = sum(training_set, [])
     test_set = sum(test_set, [])
     testv_set = sum(testv_set, [])
     print(len(training_set), len(test_set), len(testv_set))
     
-    # 设置PLM文件路径
+    # Set PLM file path
     plm_location = os.path.join(current_dir, Paths.PLM_DIR)
     plm_path = os.path.join(plm_location, plm_file_name)
-    
-    # 运行数据处理
+
+    # Run data processing
     run_through(training_set, test_set, testv_set, output=output_dir, plm_path=plm_path)
 
 def process_test_set_only(test_file: str,
@@ -198,72 +198,72 @@ def process_test_set_only(test_file: str,
                          plm_file_name: str = "AA_pred_LOO_roberta.json",
                          seed: int = 42) -> None:
     """
-    只处理测试集数据
-    
+    Process test set only.
+
     Args:
-        test_file: 测试数据文件路径
-        output_dir: 输出目录
-        plm_file_name: PLM预测文件名
-        seed: 随机种子
+        test_file: Path to test data file.
+        output_dir: Output directory.
+        plm_file_name: PLM prediction file name.
+        seed: Random seed.
     """
-    # 设置随机种子
+    # Set random seed
     random.seed(seed)
     np.random.seed(seed)
     
-    # 获取当前目录
+    # Get current directory
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    
-    # 加载测试数据
+
+    # Load test data
     with open(test_file) as f:
         test_data = json.load(f)
     
-    # 处理文本格式
+    # Normalize text format
     for key in test_data:
         for m in range(len(test_data[key])):
             test_data[key][m]["text"] = str(test_data[key][m]["text"])
     
     process_section_types(test_data, current_dir)
-    # 准备数据
+    # Prepare data
     data = [test_data[i] for i in test_data]
     testv_set = sum(data, [])
     
-    # 创建输出目录
+    # Create output directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     subdir_path = os.path.join(output_dir, "mapping")
     if not os.path.exists(subdir_path):
         os.makedirs(subdir_path)
-        
-    # 获取ID映射
+
+    # Get ID mappings
     i2t, t2i = assign_comment_index(test_data, start_index=10000)
     rename_speaker(test_data, start_index=10000)
     i2m, m2i = assign_meeting_id(test_data, start_index=10000)
     info2t, t2info = assign_info(test_data)
-        
-    # 保存映射
+
+    # Save mappings
     with open(os.path.join(subdir_path, "test_id_mapping.json"), "w") as f:
         json.dump({"i2u": i2t, "u2i": t2i, "i2m": i2m, "m2i": m2i, "info2t": info2t, "t2info": t2info}, f)
     
-    # 创建test子目录
+    # Create test subdirectory
     test_subdir_path = os.path.join(output_dir, "test")
     if not os.path.exists(test_subdir_path):
         os.makedirs(test_subdir_path)
     
-    # 设置PLM文件路径
+    # Set PLM file path
     plm_location = os.path.join(current_dir, Paths.PLM_DIR)
     plm_path = os.path.join(plm_location, plm_file_name)
     
-    # 运行测试集处理
+    # Run test set processing
     run_test_set_only(testv_set, output=output_dir, plm_path=plm_path)
 
 def run_test_set_only(testv_list, output="../data/public_comments", plm_path=None):
     """
-    只运行测试集数据处理
-    
+    Run test set data processing only.
+
     Args:
-        testv_list: 测试数据列表
-        output: 输出目录
-        plm_path: PLM预测文件路径
+        testv_list: List of test data.
+        output: Output directory.
+        plm_path: Path to PLM prediction file.
     """
 
     hearing_signal = Settings.HEARING_SIGNALS
@@ -299,10 +299,10 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     testv_next_phrase = []
     testv_name_phrase = []
     
-    # 加载PLM预测结果
+    # Load PLM prediction results
     with open(plm_path) as f:
         plm_pred = json.load(f)
-    
+
     for ind, example in enumerate(testv_list):
         spoken_testv.append(make_spoken(example))
         #testv_commenttype += make_commenttype(example)
@@ -340,7 +340,7 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     testv_speaker_low_count = make_low_count(testv_speaker_count_dict)
     testv_speaker_high_count = make_high_count(testv_speaker_count_dict)
     
-    # 只写入测试集文件
+    # Write test set files only
     write_a_file(spoken_testv, output + "/test/spoken.txt")
     # write_a_file(longUtter_testv, output + "/test/longUtter.txt")
     write_a_file(testv_speaker_long, output + "/test/speaker_long.txt")
@@ -365,22 +365,22 @@ def run_test_set_only(testv_list, output="../data/public_comments", plm_path=Non
     # write_a_file(testv_next_phrase, output + "/test/next_phrase.txt")
     write_a_file(testv_name_phrase, output + "/test/name_phrase.txt")
     
-    # 保存词汇表
+    # Save vocabulary
     # with open(output + "/test/vocab.json", "w") as f:
     #     json.dump(vocab, f)
 
 def run_through(train_list, test_list, testv_list, output="../data/public_comments", plm_path=None):
     """
-    运行数据处理
-    
+    Run data processing.
+
     Args:
-        train_list: 训练数据列表
-        test_list: 测试数据列表
-        testv_list: 验证数据列表
-        output: 输出目录
-        plm_path: PLM预测文件路径
+        train_list: List of training data.
+        test_list: List of test data.
+        testv_list: List of validation data.
+        output: Output directory.
+        plm_path: Path to PLM prediction file.
     """
-    # 为了保持词汇表一致性，我们仍然需要构建词汇表
+    # To keep vocabulary consistent, we still build the vocabulary
     # contains_train, contains_test, contains_testv, vocab = make_contain(train_list, test_list, testv_list)
     
     hearing_signal = Settings.HEARING_SIGNALS
@@ -416,7 +416,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
     train_next_phrase = []
     train_name_phrase = []
 
-    # 加载PLM预测结果
+    # Load PLM prediction results
     with open(plm_path) as f:
         plm_pred = json.load(f)
 
@@ -488,12 +488,11 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         spoken_test.append(make_spoken(example))
         test_commenttype += make_commenttype(example)
         test_commenttype_tar += make_commenttype_tar(example)
-        # 根据是否有验证集选择不同的预测结果
+        # Choose prediction source based on whether validation set exists
         if "val_pred" in plm_pred:
             test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["val_pred"]))
         else:
-            # 如果没有验证集，test_list应该是空的，这里不应该执行
-            # 但为了安全起见，仍然使用train_pred
+            # If no validation set, test_list should be empty; use train_pred for safety
             test_llm_commenttype.append(make_plm_pred(example, ind, plm_pred["train_pred"]))
         
         test_section_type_gpt.extend(make_section_type_gpt(example))
@@ -518,7 +517,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         test_next_phrase.append(make_phrase(example, next_signal))
         test_name_phrase.append(make_phrase(example, name_signal))
     
-    # 只有当test_list不为空时才处理test_speaker相关数据
+    # Process test_speaker data only when test_list is non-empty
     if test_list:
         test_speaker_long = make_long_utter_rate(test_speaker_long_dict)
         test_speaker_type = make_speakertype(test_speaker_type_dict)
@@ -527,7 +526,7 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
         test_speaker_low_count = make_low_count(test_speaker_count_dict)
         test_speaker_high_count = make_high_count(test_speaker_count_dict)
     else:
-        # 如果test_list为空，创建空的列表
+        # If test_list is empty, create empty lists
         test_speaker_long = []
         test_speaker_type = []
         test_speaker_type_tar = []
@@ -676,15 +675,15 @@ def run_through(train_list, test_list, testv_list, output="../data/public_commen
 
 def make_longUtter(example, speaker_long_dict, threshold=50):
     """
-    处理长文本
-    
+    Process long text.
+
     Args:
-        example: 示例数据
-        speaker_long_dict: 说话者长文本字典
-        threshold: 长文本阈值
-        
+        example: Example data.
+        speaker_long_dict: Speaker long-text dict.
+        threshold: Long-text threshold.
+
     Returns:
-        Tuple[str, Dict]: 长文本标记和更新后的字典
+        Tuple[str, Dict]: Long-text marker and updated dict.
     """
     speaker = example["speaker"]
     M = example["meeting"]
@@ -704,13 +703,13 @@ def make_longUtter(example, speaker_long_dict, threshold=50):
 
 def make_spoken(example):
     """
-    处理说话者信息
-    
+    Process speaker info.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        str: 说话者信息行
+        str: Speaker info line.
     """
     speaker = example["speaker"]
     M = example["meeting"]
@@ -719,14 +718,14 @@ def make_spoken(example):
 
 def _make_speakertype(example, speaker_type_dict):
     """
-    处理说话者类型
-    
+    Process speaker type.
+
     Args:
-        example: 示例数据
-        speaker_type_dict: 说话者类型字典
-        
+        example: Example data.
+        speaker_type_dict: Speaker type dict.
+
     Returns:
-        Dict: 更新后的说话者类型字典
+        Dict: Updated speaker type dict.
     """
     speaker = example["speaker"]
     M = example["meeting"]
@@ -746,13 +745,13 @@ def _make_speakertype(example, speaker_type_dict):
 
 def make_commenttype(example):
     """
-    处理评论类型
-    
+    Process comment type.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        List[str]: 评论类型行列表
+        List[str]: Comment type lines.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -774,13 +773,13 @@ def make_commenttype(example):
 
 def make_speakertype(speaker_type_dict):
     """
-    生成说话者类型
-    
+    Generate speaker type lines.
+
     Args:
-        speaker_type_dict: 说话者类型字典
-        
+        speaker_type_dict: Speaker type dict.
+
     Returns:
-        List[str]: 说话者类型行列表
+        List[str]: Speaker type lines.
     """
     speaker_type = []
     
@@ -804,13 +803,13 @@ def make_speakertype(speaker_type_dict):
 
 def make_long_utter_rate(speaker_long_dict):
     """
-    生成长文本比率
-    
+    Generate long-utterance rate lines.
+
     Args:
-        speaker_long_dict: 说话者长文本字典
-        
+        speaker_long_dict: Speaker long-text dict.
+
     Returns:
-        List[str]: 长文本比率行列表
+        List[str]: Long-text rate lines.
     """
     speaker_long = []
     for speaker in speaker_long_dict:
@@ -820,15 +819,15 @@ def make_long_utter_rate(speaker_long_dict):
 
 def make_contain(train_list, val_list, test_list):
     """
-    生成包含关系
-    
+    Generate containment relations.
+
     Args:
-        train_list: 训练数据列表
-        val_list: 验证数据列表
-        test_list: 测试数据列表
-        
+        train_list: Training data list.
+        val_list: Validation data list.
+        test_list: Test data list.
+
     Returns:
-        Tuple[List[str], List[str], List[str], List[str]]: 包含关系行列表和词汇表
+        Tuple of containment line lists and vocabulary.
     """
     example_list = train_list + val_list + test_list
     contains_train, contains_val, contains_test = [], [], []
@@ -856,14 +855,14 @@ def make_contain(train_list, val_list, test_list):
 
 def get_speak_count(example, speaker_count_dict):
     """
-    获取说话者计数
-    
+    Get speaker count.
+
     Args:
-        example: 示例数据
-        speaker_count_dict: 说话者计数字典
-        
+        example: Example data.
+        speaker_count_dict: Speaker count dict.
+
     Returns:
-        Dict: 更新后的说话者计数字典
+        Dict: Updated speaker count dict.
     """
     M = example["meeting"]
     speaker = example["speaker"]
@@ -874,13 +873,13 @@ def get_speak_count(example, speaker_count_dict):
     
 def make_low_count(speaker_count_dict):
     """
-    生成低计数标记
-    
+    Generate low-count markers.
+
     Args:
-        speaker_count_dict: 说话者计数字典
-        
+        speaker_count_dict: Speaker count dict.
+
     Returns:
-        List[str]: 低计数标记行列表
+        List[str]: Low-count marker lines.
     """
     lines = []
     for k,v in speaker_count_dict.items():
@@ -894,13 +893,13 @@ def make_low_count(speaker_count_dict):
 
 def make_high_count(speaker_count_dict):
     """
-    生成高计数标记
-    
+    Generate high-count markers.
+
     Args:
-        speaker_count_dict: 说话者计数字典
-        
+        speaker_count_dict: Speaker count dict.
+
     Returns:
-        List[str]: 高计数标记行列表
+        List[str]: High-count marker lines.
     """
     lines = []
     for k,v in speaker_count_dict.items():
@@ -914,13 +913,13 @@ def make_high_count(speaker_count_dict):
 
 def make_section_type_gpt(example):
     """
-    生成GPT部分类型
-    
+    Generate GPT section type lines.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        List[str]: 部分类型行列表
+        List[str]: Section type lines.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -943,13 +942,13 @@ def make_section_type_gpt(example):
 
 def make_section_type(example):
     """
-    生成部分类型
-    
+    Generate section type lines.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        List[str]: 部分类型行列表
+        List[str]: Section type lines.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -974,15 +973,15 @@ def make_section_type(example):
 
 def make_plm_pred(example, ind, plm_pred):
     """
-    生成PLM预测
-    
+    Generate PLM prediction line.
+
     Args:
-        example: 示例数据
-        ind: 索引
-        plm_pred: PLM预测结果
-        
+        example: Example data.
+        ind: Index.
+        plm_pred: PLM prediction results.
+
     Returns:
-        str: PLM预测行
+        str: PLM prediction line.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -992,13 +991,13 @@ def make_plm_pred(example, ind, plm_pred):
 
 def make_section_type_tar(example):
     """
-    生成部分类型目标
-    
+    Generate section type target lines.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        List[str]: 部分类型目标行列表
+        List[str]: Section type target lines.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -1008,13 +1007,13 @@ def make_section_type_tar(example):
 
 def make_commenttype_tar(example):
     """
-    生成评论类型目标
-    
+    Generate comment type target lines.
+
     Args:
-        example: 示例数据
-        
+        example: Example data.
+
     Returns:
-        List[str]: 评论类型目标行列表
+        List[str]: Comment type target lines.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -1024,13 +1023,13 @@ def make_commenttype_tar(example):
 
 def make_speaker_type_tar(s):
     """
-    生成说话者类型目标
-    
+    Generate speaker type target lines.
+
     Args:
-        s: 说话者信息字符串
-        
+        s: Speaker info string.
+
     Returns:
-        List[str]: 说话者类型目标行列表
+        List[str]: Speaker type target lines.
     """
     M = s.split('\t')[0]
     speaker = s.split('\t')[1]
@@ -1039,14 +1038,14 @@ def make_speaker_type_tar(s):
 
 def make_precede(i, example_list):
     """
-    生成前序关系
-    
+    Generate precedence relation line.
+
     Args:
-        i: 索引
-        example_list: 示例列表
-        
+        i: Index.
+        example_list: Example list.
+
     Returns:
-        Optional[str]: 前序关系行
+        Optional[str]: Precedence line.
     """
     M = example_list[i]["meeting"]
     utt_index = example_list[i]["index"]
@@ -1059,14 +1058,14 @@ def make_precede(i, example_list):
     
 def make_first(now_meeting, example):
     """
-    生成首次标记
-    
+    Generate first-occurrence marker.
+
     Args:
-        now_meeting: 当前会议
-        example: 示例数据
-        
+        now_meeting: Current meeting.
+        example: Example data.
+
     Returns:
-        Tuple[Optional[str], str]: 首次标记行和更新后的会议
+        Tuple[Optional[str], str]: First marker line and updated meeting.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -1077,14 +1076,14 @@ def make_first(now_meeting, example):
     
 def make_phrase(example, phrases):
     """
-    生成短语标记
-    
+    Generate phrase marker line.
+
     Args:
-        example: 示例数据
-        phrases: 短语列表
-        
+        example: Example data.
+        phrases: Phrase list.
+
     Returns:
-        str: 短语标记行
+        str: Phrase marker line.
     """
     M = example["meeting"]
     utt_index = example["index"]
@@ -1097,13 +1096,13 @@ def make_phrase(example, phrases):
 
 def get_line(l):
     """
-    将列表转换为制表符分隔的字符串
-    
+    Convert list to tab-separated string.
+
     Args:
-        l: 输入列表
-        
+        l: Input list.
+
     Returns:
-        str: 制表符分隔的字符串
+        str: Tab-separated string.
     """
     return "\t".join(l)+"\n"
 
@@ -1121,14 +1120,14 @@ def write_a_file(alist, filename):
 
 def assign_comment_index(truth, start_index=0):
     """
-    为评论分配索引
-    
+    Assign index to comments.
+
     Args:
-        truth: 数据字典
-        start_index: 起始索引
-        
+        truth: Data dictionary.
+        start_index: Start index.
+
     Returns:
-        Tuple[Dict, Dict]: 索引到文本和文本到索引的映射
+        Tuple[Dict, Dict]: Index-to-text and text-to-index mappings.
     """
     k = start_index
     ind_to_text, text_to_ind = {}, {}
@@ -1142,7 +1141,7 @@ def assign_comment_index(truth, start_index=0):
 
 def rename_speaker(truth, start_index=0):
     """
-    重命名说话者
+    Rename speakers.
     
     Args:
         truth: 数据字典
@@ -1156,14 +1155,14 @@ def rename_speaker(truth, start_index=0):
 
 def assign_meeting_id(truth, start_index=0):
     """
-    为会议分配ID
-    
+    Assign meeting ID.
+
     Args:
-        truth: 数据字典
-        start_index: 起始索引
-        
+        truth: Data dictionary.
+        start_index: Start index.
+
     Returns:
-        Tuple[Dict, Dict]: 索引到会议和会议到索引的映射
+        Tuple[Dict, Dict]: Index-to-meeting and meeting-to-index mappings.
     """
     k = start_index
     ind_to_m, m_to_ind = {}, {}
@@ -1177,13 +1176,13 @@ def assign_meeting_id(truth, start_index=0):
 
 def assign_info(truth):
     """
-    分配信息映射
-    
+    Assign info mappings.
+
     Args:
-        truth: 数据字典
-        
+        truth: Data dictionary.
+
     Returns:
-        Tuple[Dict, Dict]: 信息到文本和文本到信息的映射
+        Tuple[Dict, Dict]: Info-to-text and text-to-info mappings.
     """
     k = 0
     info_to_t, t_to_info = {}, {}
@@ -1229,7 +1228,7 @@ def self_tokenizer(text):
 
 class CustomVectorizer(CountVectorizer):
     """
-    自定义向量化器
+    Custom vectorizer.
     """
     def __init__(self):
         self.stop_words = stopwords.words('english')
@@ -1247,18 +1246,18 @@ class CustomVectorizer(CountVectorizer):
                       lowercase=True,
                       low_df=0):
         """
-        自定义分词器
-        
+        Custom tokenizer.
+
         Args:
-            text: 输入文本
-            lem: 是否进行词形还原
-            rm_stopwords: 是否移除停用词
-            rm_punc: 是否移除标点符号
-            lowercase: 是否转换为小写
-            low_df: 最小文档频率
-            
+            text: Input text.
+            lem: Whether to lemmatize.
+            rm_stopwords: Whether to remove stopwords.
+            rm_punc: Whether to remove punctuation.
+            lowercase: Whether to lowercase.
+            low_df: Minimum document frequency.
+
         Returns:
-            List[str]: 分词结果
+            List[str]: Token list.
         """
         def remove_punc(text):
             text = re.sub("[^0-9A-Za-z ]", "" , text)
@@ -1288,13 +1287,13 @@ class CustomVectorizer(CountVectorizer):
     
     def prepare_doc(self, docs):
         """
-        准备文档
-        
+        Prepare documents.
+
         Args:
-            docs: 文档列表
-            
+            docs: Document list.
+
         Returns:
-            List[str]: 处理后的文档列表
+            List[str]: Processed document list.
         """
         min_df=2
         tokens = [self.self_tokenizer(y) for y in docs]

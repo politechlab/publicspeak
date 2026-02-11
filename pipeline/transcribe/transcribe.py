@@ -26,7 +26,7 @@ def use_whisperx(device: str, audio_file: str, hf_token: str, batch_size: int, c
         Dict[str, Any]: transcription result
     """
     # load model
-    # TODO: 检查是否可行
+    # TODO: Verify feasibility
     # model = whisperx.load_model(model_name, device, compute_type=compute_type)
     print(device)
     if ":" in device:

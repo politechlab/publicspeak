@@ -25,12 +25,12 @@ class PLMProcessor:
                  device: str = "cuda",
                  seed: int = Settings.SEED):
         """
-        初始化PLM处理器
-        
+        Initialize PLM processor.
+
         Args:
-            model_name: 模型名称
-            device: 设备
-            seed: 随机种子
+            model_name: Model name.
+            device: Device (e.g. cuda/cpu).
+            seed: Random seed.
         """
         self.model_name = model_name
         self.device = device
@@ -39,11 +39,11 @@ class PLMProcessor:
         self.tokenizer = None
         self.trainer = None
         
-        # 设置随机种子
+        # Set random seed
         self._seed_everything(seed)
         
     def _seed_everything(self, seed_value: int) -> None:
-        """设置随机种子"""
+        """Set random seed."""
         random.seed(seed_value)
         np.random.seed(seed_value)
         torch.manual_seed(seed_value)
@@ -56,7 +56,7 @@ class PLMProcessor:
             torch.backends.cudnn.benchmark = True
             
     def _load_model(self) -> None:
-        """加载模型和tokenizer"""
+        """Load model and tokenizer."""
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(
             self.model_name, num_labels=3
@@ -64,7 +64,7 @@ class PLMProcessor:
         self.model.to(self.device)
         
     def _prepare_data(self, data: List[Dict[str, Any]]) -> DatasetDict:
-        """准备数据"""
+        """Prepare data."""
         def preprocess_function(examples):
             return self.tokenizer(examples["text"], truncation=True)
         
@@ -75,7 +75,7 @@ class PLMProcessor:
         return DatasetDict({"predict": tokenized_dataset})
         
     def _compute_metrics(self, eval_pred) -> Dict[str, float]:
-        """计算评估指标"""
+        """Compute evaluation metrics."""
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=1)
         accuracy = evaluate.load("accuracy")
@@ -88,20 +88,20 @@ class PLMProcessor:
               epoch: int = Settings.EPOCHS,
               bs: int = Settings.PLM_BATCH_SIZE) -> None:
         """
-        训练模型，只做训练，不返回任何内容
-        
+        Train the model (training only, no return value).
+
         Args:
-            train: 训练数据
-            val: 验证数据，如果为None则使用train作为验证集
-            lr: 学习率
-            epoch: 训练轮数
-            bs: batch size
+            train: Training data.
+            val: Validation data; if None, train is used as validation set.
+            lr: Learning rate.
+            epoch: Number of epochs.
+            bs: Batch size.
         """
         self._load_model()
         training_set = train
-        val_set = val if val is not None else train  # 如果没有val，就用train
-        
-        # 合并数据集
+        val_set = val if val is not None else train  # Use train as val if val is None
+
+        # Merge datasets
         if training_set:
             train_df = pd.concat(training_set, ignore_index=True)
             tds = Dataset.from_pandas(train_df)
@@ -134,12 +134,12 @@ class PLMProcessor:
             per_device_eval_batch_size=bs,
             num_train_epochs=epoch,
             weight_decay=0.01,
-            evaluation_strategy="epoch",  # 每个epoch进行评估
-            save_strategy="epoch",  # 不保存检查点
-            load_best_model_at_end=True,  # 加载最佳模型
+            evaluation_strategy="epoch",  # Evaluate every epoch
+            save_strategy="epoch",  # Save every epoch
+            load_best_model_at_end=True,  # Load best model at end
         )
 
-        # 创建trainer
+        # Create trainer
         self.trainer = Trainer(
             model=self.model,
             args=training_args,
@@ -150,18 +150,18 @@ class PLMProcessor:
             compute_metrics=self._compute_metrics,
         )
 
-        # 训练模型
+        # Train model
         self.trainer.train()
 
     def predict(self, test_set: List[pd.DataFrame]) -> List[int]:
         """
-        对test_set进行推理，返回预测结果
-        
+        Run inference on test_set and return predictions.
+
         Args:
-            test_set: 测试数据列表，每个元素是一个DataFrame，包含text列
-            
+            test_set: List of test DataFrames, each with a text column.
+
         Returns:
-            List[int]: 预测结果列表
+            List[int]: List of predicted labels.
         """
         if not test_set:
             return []
@@ -182,7 +182,7 @@ class PLMProcessor:
 
     def get_metrics(self, y_true: List[int], y_pred: List[int]) -> dict:
         """
-        输入真实标签和预测标签，返回metrics字典
+        Compute metrics from ground-truth and predicted labels.
         """
         pre0, pre1, rec0, rec1, f10, f11 = precision_recall(y_pred, y_true)
         pre0_b, pre1_b, rec0_b, rec1_b, f10_b, f11_b = precision_recall_bad(y_pred, y_true)
@@ -204,18 +204,18 @@ class PLMProcessor:
 
     def load_trained_model(self, model_path: Optional[str] = None) -> None:
         """
-        加载训练好的模型
-        
+        Load trained model.
+
         Args:
-            model_path: 模型路径，如果为None则使用默认路径
+            model_path: Model path; if None, use default path.
         """
         if model_path is None:
             model_path = str(Paths.PLM_DIR / "models")
             
-        # 加载tokenizer
+        # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         
-        # 加载训练好的模型
+        # Load trained model
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.model.to(self.device)
         
@@ -223,40 +223,40 @@ class PLMProcessor:
 
     def process_transcript(self, transcript_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        处理转录文本
-        
+        Process transcript text.
+
         Args:
-            transcript_data: 转录文本数据
-            
+            transcript_data: Transcript data.
+
         Returns:
-            Dict[str, Any]: 处理结果
+            Dict[str, Any]: Processing result.
         """
         if self.model is None or self.tokenizer is None:
             raise ValueError("Model not loaded. Please call load_trained_model first.")
             
-        # 准备数据
+        # Prepare data
         data = []
         for i, item in enumerate(transcript_data):
             data.append({
                 'text': item['text']
             })
         
-        # 准备数据集
+        # Prepare dataset
         dataset = self._prepare_data(data)
         data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
         
-        # 创建trainer
+        # Create trainer
         trainer = Trainer(
             model=self.model,
             tokenizer=self.tokenizer,
             data_collator=data_collator
         )
         
-        # 进行预测
+        # Run prediction
         predictions = trainer.predict(dataset["predict"])
         pred = np.argmax(predictions.predictions, axis=1).tolist()
-        
-        # 整理结果
+
+        # Format result
         result = pred
         
         return result
@@ -264,31 +264,31 @@ class PLMProcessor:
     # TODO: Check if this function is needed.
     def process_test_file(self, test_file: str) -> Dict[str, Any]:
         """
-        处理测试文件，与main函数中的逻辑一致
-        
+        Process test file (logic aligned with main).
+
         Args:
-            test_file: 测试文件路径
-            
+            test_file: Path to test file.
+
         Returns:
-            Dict[str, Any]: 处理结果
+            Dict[str, Any]: Processing result.
         """
         if self.model is None or self.tokenizer is None:
             raise ValueError("Model not loaded. Please call load_trained_model first.")
             
-        # 加载测试数据
+        # Load test data
         with open(test_file) as f:
             test = json.load(f)
         
-        # 准备测试集（不需要label）
+        # Prepare test set (no labels needed)
         test_data = []
         for k in test:
             df = pd.DataFrame([[str(v["text"])] for v in test[k]], columns=["text"])
             test_data.append(df)
         
-        # 进行预测
+        # Run prediction
         test_pred = self.predict(test_data)
-        
-        # 整理结果
+
+        # Format result
         result = {
             "pred": test_pred
         }
@@ -330,15 +330,15 @@ def precision_recall_bad(y, y_pred):
 
 def main(args):
     
-    # 创建处理器实例
+    # Create processor instance
     print(args)
     processor = PLMProcessor(
         model_name=args.plm_model_name,
         seed=args.seed
     )
     
-    # 加载数据
-    
+    # Load data
+
     train_file = args.raw_train_dir / args.train_file
     test_file = args.raw_test_dir / args.test_file
     
@@ -347,7 +347,7 @@ def main(args):
     with open(test_file) as f:
         test = json.load(f)
         
-    # 检查验证集文件是否存在
+    # Check if validation file exists
     val = None
     if args.raw_eval_dir and args.eval_file:
         val_file = args.raw_eval_dir / args.eval_file
@@ -355,7 +355,7 @@ def main(args):
             with open(val_file) as f:
                 val = json.load(f)
     
-    # 准备数据
+    # Prepare data
     def assign_label(val):
         try:
             if val['is_public_comment']:
@@ -366,13 +366,13 @@ def main(args):
         except:
             return 0
             
-    # 准备训练集
+    # Prepare training set
     train_data = []
     for k in train:
         df = pd.DataFrame([[str(v["text"]), assign_label(v)] for v in train[k]], columns=["text", "label"])
         train_data.append(df)
     
-    # 准备验证集
+    # Prepare validation set
     val_data = None
     if val is not None:
         val_data = []
@@ -380,31 +380,31 @@ def main(args):
             df = pd.DataFrame([[str(v["text"]), assign_label(v)] for v in val[k]], columns=["text", "label"])
             val_data.append(df)
     
-    # 准备测试集
+    # Prepare test set
     test_data = []
     for k in test:
         df = pd.DataFrame([[str(v["text"]), assign_label(v)] for v in test[k]], columns=["text", "label"])
         test_data.append(df)
     
-    # 训练模型
+    # Train model
     processor.train(
         train=train_data,
-        val=val_data,  # 如果没有验证集，val_data为None，train方法会使用训练集作为验证集
+        val=val_data,  # If no validation set, train() uses training set as validation
         lr=args.lr,
         epoch=args.epoch,
         bs=args.plm_batch_size
     )
     
-    # 预测并评估
+    # Predict and evaluate
     test_pred = processor.predict(test_data)
     test_labels = [label for df in test_data for label in df['label']]
     metrics = processor.get_metrics(test_labels, test_pred)
     
-    # 获取训练集和验证集的预测结果
+    # Get predictions for train and validation sets
     train_pred = processor.predict(train_data)
     val_pred = processor.predict(val_data) if val_data is not None else []
     
-    # 保存结果
+    # Save results
     result = {
         "pred": test_pred,
         "train_pred": train_pred,
@@ -416,12 +416,12 @@ def main(args):
     with open(output_file, "w") as f:
         json.dump(result, f)
     
-    # 保存模型
+    # Save model
     if args.save_plm_model:
         model_output_dir = Paths.PLM_DIR / "models"
         model_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # 保存模型和tokenizer
+        # Save model and tokenizer
         processor.model.save_pretrained(str(model_output_dir))
         processor.tokenizer.save_pretrained(str(model_output_dir))
 
